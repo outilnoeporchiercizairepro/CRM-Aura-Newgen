@@ -10,12 +10,27 @@ import {
     Wallet,
     TrendingDown
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useEffect, useState } from 'react';
 
 interface Props {
     children: React.ReactNode;
 }
 
 export function MainLayout({ children }: Props) {
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            setUser(user);
+        });
+    }, []);
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+    };
+
+    const userInitial = user?.email?.[0].toUpperCase() || 'U';
     return (
         <div className="flex h-screen bg-slate-900 text-slate-100 overflow-hidden font-sans">
             {/* Sidebar */}
@@ -37,7 +52,10 @@ export function MainLayout({ children }: Props) {
 
                 <div className="p-4 border-t border-slate-800 space-y-2">
                     <NavItem to="/settings" icon={<Settings size={20} />} label="Paramètres" />
-                    <button className="flex items-center w-full px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors duration-200">
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center w-full px-4 py-3 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors duration-200"
+                    >
                         <LogOut size={20} className="mr-3" />
                         <span>Déconnexion</span>
                     </button>
@@ -52,8 +70,12 @@ export function MainLayout({ children }: Props) {
                         Bienvenue
                     </h2>
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                            N
+                        <div className="flex flex-col items-end">
+                            <span className="text-xs font-bold text-white uppercase tracking-tight">{user?.email?.split('@')[0]}</span>
+                            <span className="text-[10px] text-slate-500 font-medium">{user?.email === 'admin@aura-academie.com' ? 'ADMIN' : 'MEMBRE'}</span>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">
+                            {userInitial}
                         </div>
                     </div>
                 </header>

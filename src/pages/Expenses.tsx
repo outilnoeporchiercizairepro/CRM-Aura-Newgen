@@ -7,7 +7,8 @@ import {
     Calendar,
     Clock,
     Search,
-    ArrowLeft
+    ArrowLeft,
+    Trash2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ExpenseModal } from '../components/ExpenseModal';
@@ -40,6 +41,24 @@ export function Expenses() {
             console.error('Error fetching expenses:', error);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleDeleteExpense(e: React.MouseEvent, expense: Expense) {
+        e.stopPropagation(); // Prevent opening modal
+        if (!confirm('Voulez-vous vraiment supprimer cette dépense ?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('expenses')
+                .delete()
+                .eq('id', expense.id);
+
+            if (error) throw error;
+            fetchExpenses();
+        } catch (error) {
+            console.error('Error deleting expense:', error);
+            alert('Erreur lors de la suppression');
         }
     }
 
@@ -135,10 +154,12 @@ export function Expenses() {
                     <thead>
                         <tr className="bg-slate-900/50 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-700">
                             <th className="px-6 py-4">Dépense</th>
+                            <th className="px-6 py-4">Payé par</th>
                             <th className="px-6 py-4">Catégorie</th>
                             <th className="px-6 py-4">Type</th>
                             <th className="px-6 py-4">Date</th>
                             <th className="px-6 py-4 text-right">Montant</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/50">
@@ -156,7 +177,20 @@ export function Expenses() {
                                     className="hover:bg-slate-750 transition-colors cursor-pointer group"
                                 >
                                     <td className="px-6 py-4">
-                                        <p className="text-sm font-bold text-white uppercase group-hover:text-blue-400 transition-colors">{exp.name}</p>
+                                        <div className="flex flex-col">
+                                            <p className="text-sm font-bold text-white uppercase group-hover:text-blue-400 transition-colors">{exp.name}</p>
+                                            {exp.is_deducted && (
+                                                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter mt-0.5">Déduit du profit</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${exp.paid_by === 'Noé' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                            exp.paid_by === 'Baptiste' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+                                                'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                            }`}>
+                                            {exp.paid_by || 'Noé'}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className="text-[10px] font-bold text-slate-400 bg-slate-900 px-2 py-0.5 rounded uppercase border border-slate-700">
@@ -178,7 +212,18 @@ export function Expenses() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <p className="text-sm font-black text-rose-400">-{Number(exp.amount).toLocaleString('fr-FR')} €</p>
+                                        <p className={`text-sm font-black ${exp.is_deducted ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                            -{Number(exp.amount).toLocaleString('fr-FR')} €
+                                        </p>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button
+                                            onClick={(e) => handleDeleteExpense(e, exp)}
+                                            className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                            title="Supprimer"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
                                     </td>
                                 </tr>
                             ))

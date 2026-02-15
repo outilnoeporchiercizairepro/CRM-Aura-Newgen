@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Search, Filter, Phone, Mail, Eye, Plus, Calendar, Trash2, Briefcase } from 'lucide-react';
+import { Search, Filter, Phone, Mail, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, AlertCircle, Wallet, PieChart as PieChartIcon, BarChart3 as BarChartIcon } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { StatusSelect } from '../components/StatusSelect';
 import { NewContactModal } from '../components/NewContactModal';
 import { ContactCardModal } from '../components/ContactCardModal';
@@ -20,6 +21,7 @@ export function Contacts() {
     // Modal States
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [contactToConvert, setContactToConvert] = useState<Contact | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string>('all');
 
     useEffect(() => {
         fetchContacts();
@@ -56,10 +58,12 @@ export function Contacts() {
         }
     }
 
-    const filteredContacts = contacts.filter(contact =>
-        contact.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredContacts = contacts.filter(contact => {
+        const matchesSearch = contact.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            contact.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
 
     const handleStatusUpdate = (contactId: string, newStatus: string) => {
         setContacts(prev => prev.map(c =>
@@ -67,18 +71,191 @@ export function Contacts() {
         ));
     };
 
+    // Dashboard Calculations
+    const totalContacts = contacts.length;
+    const closedContacts = contacts.filter(c => c.status === 'Closé').length;
+    const scheduledCalls = contacts.filter(c => c.status === 'Call planifié').length;
+    const noShow = contacts.filter(c => c.status === 'Pas venu').length;
+    const noBudget = contacts.filter(c => c.status === 'Pas budget').length;
+
+    const conversionRate = totalContacts > 0 ? (closedContacts / totalContacts) * 100 : 0;
+    const noShowRate = totalContacts > 0 ? (noShow / totalContacts) * 100 : 0;
+
+    // Appointment taken = anyone who had a slot or is scheduled or failed to come or budget issue
+    const appointmentsCount = contacts.filter(c =>
+        ['Call planifié', 'Closé', 'Pas venu', 'Pas budget', 'Attente paiement', 'Attente retour'].includes(c.status || '')
+    ).length;
+    const noBudgetRate = appointmentsCount > 0 ? (noBudget / appointmentsCount) * 100 : 0;
+
+    // Charts Data
+    const statusDistribution = [
+        { name: 'Closé', value: closedContacts, color: '#10b981' },
+        { name: 'Call planifié', value: scheduledCalls, color: '#3b82f6' },
+        { name: 'Pas venu', value: noShow, color: '#ef4444' },
+        { name: 'Pas budget', value: noBudget, color: '#f59e0b' },
+        { name: 'Autres', value: totalContacts - (closedContacts + scheduledCalls + noShow + noBudget), color: '#64748b' }
+    ].filter(d => d.value > 0);
+
+    // Group contacts by date (last 7 days or weeks)
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    }).reverse();
+
+    const contactsByDate = last7Days.map(dateStr => {
+        const count = contacts.filter(c => {
+            if (!c.created_at) return false;
+            const d = new Date(c.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+            return d === dateStr;
+        }).length;
+        return { date: dateStr, count };
+    });
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-white">Contacts</h1>
                 <button
                     onClick={() => setIsNewModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
                 >
                     <Plus size={20} />
                     Nouveau Contact
                 </button>
             </div>
+
+            {/* Dashboard Section */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Users size={32} className="text-blue-400" />
+                    </div>
+                    <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">Total Contacts</p>
+                    <h3 className="text-xl font-bold text-white leading-none">{totalContacts}</h3>
+                    <div className="mt-2 text-[9px] text-blue-400/60 font-medium">Flux Global</div>
+                </div>
+
+                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <TrendingUp size={32} className="text-emerald-400" />
+                    </div>
+                    <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">Clients Closés</p>
+                    <h3 className="text-xl font-bold text-emerald-400 leading-none">{closedContacts}</h3>
+                    <div className="mt-2 text-[9px] text-emerald-400/60 font-medium">{conversionRate.toFixed(1)}% Conv.</div>
+                </div>
+
+                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Calendar size={32} className="text-blue-400" />
+                    </div>
+                    <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">Calls Planifiés</p>
+                    <h3 className="text-xl font-bold text-blue-400 leading-none">{scheduledCalls}</h3>
+                    <div className="mt-2 text-[9px] text-blue-400/60 font-medium">Pipeline actif</div>
+                </div>
+
+                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <AlertCircle size={32} className="text-red-400" />
+                    </div>
+                    <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">No-Shows</p>
+                    <h3 className="text-xl font-bold text-red-400 leading-none">{noShow}</h3>
+                    <div className="mt-2 text-[9px] text-red-400/60 font-medium">{noShowRate.toFixed(1)}% Taux</div>
+                </div>
+
+                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Wallet size={32} className="text-amber-400" />
+                    </div>
+                    <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">Pas de Budget</p>
+                    <h3 className="text-xl font-bold text-amber-400 leading-none">{noBudget}</h3>
+                    <div className="mt-2 text-[9px] text-amber-400/60 font-medium">{noBudgetRate.toFixed(1)}% Taux</div>
+                </div>
+
+                <div className="bg-emerald-500/10 border-2 border-emerald-500/20 p-4 rounded-xl relative overflow-hidden group ring-1 ring-emerald-500/30">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <TrendingUp size={32} className="text-emerald-500" />
+                    </div>
+                    <p className="text-emerald-400 text-[10px] font-bold mb-1 uppercase tracking-wider">Taux Conversion</p>
+                    <h3 className="text-2xl font-black text-emerald-400 leading-none">{conversionRate.toFixed(1)}%</h3>
+                    <div className="mt-2 text-[9px] text-emerald-400/80 font-bold uppercase tracking-tighter italic">KPI Performance</div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl">
+                    <h3 className="text-sm font-semibold text-slate-300 mb-6 uppercase tracking-wider flex items-center gap-2">
+                        <BarChartIcon size={16} className="text-blue-400" />
+                        Nouveaux Contacts (7j)
+                    </h3>
+                    <div className="h-[250px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={contactsByDate}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    stroke="#94a3b8"
+                                    fontSize={10}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <YAxis
+                                    stroke="#94a3b8"
+                                    fontSize={10}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#1e293b',
+                                        border: '1px solid #334155',
+                                        borderRadius: '8px',
+                                        fontSize: '12px'
+                                    }}
+                                />
+                                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl">
+                    <h3 className="text-sm font-semibold text-slate-300 mb-6 uppercase tracking-wider flex items-center gap-2">
+                        <PieChartIcon size={16} className="text-emerald-400" />
+                        Répartition des Statuts
+                    </h3>
+                    <div className="h-[250px] w-full flex items-center justify-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={statusDistribution}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {statusDistribution.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#1e293b',
+                                        border: '1px solid #334155',
+                                        borderRadius: '8px',
+                                        fontSize: '12px'
+                                    }}
+                                />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+
 
             <div className="flex gap-4">
                 <div className="relative flex-1">
@@ -91,10 +268,26 @@ export function Contacts() {
                         className="w-full bg-slate-800 border border-slate-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
                     />
                 </div>
-                <button className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-700 transition-colors">
-                    <Filter size={20} />
-                    Filtres
-                </button>
+
+                <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-1">
+                    <div className="flex items-center px-3 text-slate-400">
+                        <Filter size={16} />
+                    </div>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="bg-transparent text-white px-2 py-1 text-sm focus:outline-none cursor-pointer"
+                    >
+                        <option value="all" className="bg-slate-800">Tous les statuts</option>
+                        <option value="Call planifié" className="bg-slate-800">Call planifié</option>
+                        <option value="A recontacter" className="bg-slate-800">A recontacter</option>
+                        <option value="Closé" className="bg-slate-800">Closé</option>
+                        <option value="Attente paiement" className="bg-slate-800">Attente paiement</option>
+                        <option value="Attente retour" className="bg-slate-800">Attente retour</option>
+                        <option value="Pas venu" className="bg-slate-800">Pas venu</option>
+                        <option value="Pas budget" className="bg-slate-800">Pas budget</option>
+                    </select>
+                </div>
             </div>
 
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">

@@ -26,6 +26,7 @@ export function ConvertToClientModal({ contact, isOpen, onClose, onSuccess }: Pr
         closed_by: 'Noé' as TeamMember,
         setter_commission_percentage: '10',
         amount_paid: '',
+        billing_platform: 'Mollie' as Database['public']['Enums']['billing_platform_enum'],
         distribution: {
             "Noé": 33.33,
             "Baptiste": 33.33,
@@ -76,7 +77,8 @@ export function ConvertToClientModal({ contact, isOpen, onClose, onSuccess }: Pr
                     closed_by: formData.closed_by,
                     setter_commission_percentage: hasSetter ? parseFloat(formData.setter_commission_percentage) : 0,
                     commission_distribution: formData.distribution,
-                    amount_paid: amountPaidInitial
+                    amount_paid: amountPaidInitial,
+                    billing_platform: formData.billing_platform
                 }])
                 .select()
                 .single();
@@ -90,28 +92,39 @@ export function ConvertToClientModal({ contact, isOpen, onClose, onSuccess }: Pr
             if (formData.payment_method === '4x') numPayments = 4;
 
             const installments = [];
-            const remainingAmount = dealAmount - amountPaidInitial;
-            const installmentAmount = numPayments > 1 ? remainingAmount / (numPayments - 1) : 0;
 
-            // First payment (Initial)
-            installments.push({
-                client_id: newClient.id,
-                amount: amountPaidInitial,
-                due_date: new Date().toISOString(),
-                status: 'Payé' as const
-            });
-
-            // Subsequent payments
-            for (let i = 1; i < numPayments; i++) {
-                const dueDate = new Date();
-                dueDate.setDate(dueDate.getDate() + (i * 30));
-
+            if (numPayments === 1) {
+                // One shot: single installment for full deal amount
                 installments.push({
                     client_id: newClient.id,
-                    amount: parseFloat(installmentAmount.toFixed(2)),
-                    due_date: dueDate.toISOString(),
-                    status: 'En attente' as const
+                    amount: dealAmount,
+                    due_date: new Date().toISOString(),
+                    status: amountPaidInitial >= dealAmount ? ('Payé' as const) : ('En attente' as const)
                 });
+            } else {
+                const remainingAmount = dealAmount - amountPaidInitial;
+                const installmentAmount = remainingAmount / (numPayments - 1);
+
+                // First payment (Initial)
+                installments.push({
+                    client_id: newClient.id,
+                    amount: amountPaidInitial,
+                    due_date: new Date().toISOString(),
+                    status: 'Payé' as const
+                });
+
+                // Subsequent payments
+                for (let i = 1; i < numPayments; i++) {
+                    const dueDate = new Date();
+                    dueDate.setDate(dueDate.getDate() + (i * 30));
+
+                    installments.push({
+                        client_id: newClient.id,
+                        amount: parseFloat(installmentAmount.toFixed(2)),
+                        due_date: dueDate.toISOString(),
+                        status: 'En attente' as const
+                    });
+                }
             }
 
             const { error: installmentError } = await supabase
@@ -212,6 +225,25 @@ export function ConvertToClientModal({ contact, isOpen, onClose, onSuccess }: Pr
                             />
                         </div>
                         <p className="text-[10px] text-slate-500 mt-1 italic">L'échéancier des prochains paiements sera généré automatiquement.</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-1 font-semibold uppercase text-xs">Plateforme de Paiement</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {(['Mollie', 'GoCardless', 'Revolut'] as const).map(platform => (
+                                <button
+                                    key={platform}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, billing_platform: platform })}
+                                    className={`py-2 px-1 text-xs font-bold rounded-lg border transition-all ${formData.billing_platform === platform
+                                        ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
+                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                                        }`}
+                                >
+                                    {platform}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div>

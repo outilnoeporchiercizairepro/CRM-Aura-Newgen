@@ -30,6 +30,7 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
         deal_amount: client.deal_amount.toString(),
         amount_paid: client.amount_paid?.toString() || '0',
         payment_method: (client.payment_method || 'One shot') as PaymentMethod,
+        billing_platform: (client.billing_platform || 'Mollie') as Database['public']['Enums']['billing_platform_enum'],
         closed_by: (client.closed_by || 'Noé') as TeamMember,
         setter_commission_percentage: client.setter_commission_percentage?.toString() || '0',
         distribution: (client.commission_distribution as any) || {
@@ -46,6 +47,7 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                 deal_amount: client.deal_amount.toString(),
                 amount_paid: client.amount_paid?.toString() || '0',
                 payment_method: (client.payment_method || 'One shot') as PaymentMethod,
+                billing_platform: (client.billing_platform || 'Mollie') as Database['public']['Enums']['billing_platform_enum'],
                 closed_by: (client.closed_by || 'Noé') as TeamMember,
                 setter_commission_percentage: client.setter_commission_percentage?.toString() || '0',
                 distribution: (client.commission_distribution as any) || {
@@ -78,7 +80,15 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
     if (!isOpen) return null;
 
     const dealAmount = parseFloat(formData.deal_amount) || 0;
-    const amountPaid = parseFloat(formData.amount_paid) || 0;
+
+    // AmountPaid should be dynamic based on installments if they exist
+    const installmentsTotalPaid = installments
+        .filter(i => i.status === 'Payé')
+        .reduce((sum, i) => sum + Number(i.amount), 0);
+
+    // Use the maximum of the two or installments if they exist
+    const amountPaid = installments.length > 0 ? installmentsTotalPaid : (parseFloat(formData.amount_paid) || 0);
+
     const amountPending = dealAmount - amountPaid;
     const setterPerc = parseFloat(formData.setter_commission_percentage) || 0;
 
@@ -88,12 +98,21 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
     async function handleSave() {
         setLoading(true);
         try {
+            // Check if payment method changed
+            if (formData.payment_method !== client.payment_method) {
+                if (!confirm("Le mode de paiement a été modifié. Voulez-vous sauvegarder ? L'échéancier devra probablement être régénéré.")) {
+                    setLoading(false);
+                    return;
+                }
+            }
+
             const { error } = await supabase
                 .from('clients')
                 .update({
                     deal_amount: dealAmount,
-                    amount_paid: amountPaid,
+                    amount_paid: amountPaid, // Still using the statistical sum
                     payment_method: formData.payment_method,
+                    billing_platform: formData.billing_platform,
                     closed_by: formData.closed_by,
                     setter_commission_percentage: setterPerc,
                     commission_distribution: formData.distribution
@@ -119,39 +138,61 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
             if (formData.payment_method === '3x') numPayments = 3;
             if (formData.payment_method === '4x') numPayments = 4;
 
-            if (numPayments === 1) {
-                alert("Échéancier inutile pour un One shot.");
-                return;
+            // Confirm before overwriting
+            if (installments.length > 0) {
+                if (!confirm("Un échéancier existe déjà. Voulez-vous le supprimer et en générer un nouveau ?")) {
+                    setLoading(false);
+                    return;
+                }
+
+                const { error: deleteError } = await supabase
+                    .from('client_installments')
+                    .delete()
+                    .eq('client_id', client.id);
+
+                if (deleteError) throw deleteError;
             }
 
             const newInstallments = [];
-            const initialPaid = amountPaid;
-            const remainingAmount = dealAmount - initialPaid;
-            const installmentAmount = remainingAmount / (numPayments - 1);
 
-            // First payment (already partially or fully paid)
-            newInstallments.push({
-                client_id: client.id,
-                amount: initialPaid,
-                due_date: new Date().toISOString(),
-                status: 'Payé'
-            });
-
-            // Subsequent payments
-            for (let i = 1; i < numPayments; i++) {
-                const dueDate = new Date();
-                dueDate.setDate(dueDate.getDate() + (i * 30));
-
+            if (numPayments === 1) {
+                // One shot: single installment for full amount
                 newInstallments.push({
                     client_id: client.id,
-                    amount: parseFloat(installmentAmount.toFixed(2)),
-                    due_date: dueDate.toISOString(),
-                    status: 'En attente'
+                    amount: dealAmount,
+                    due_date: new Date().toISOString(),
+                    status: amountPaid >= dealAmount ? 'Payé' : 'En attente'
                 });
+            } else {
+                const initialPaid = amountPaid;
+                const remainingAmount = dealAmount - initialPaid;
+                const installmentAmount = remainingAmount / (numPayments - 1);
+
+                // First payment (already partially or fully paid)
+                newInstallments.push({
+                    client_id: client.id,
+                    amount: initialPaid,
+                    due_date: new Date().toISOString(),
+                    status: 'Payé'
+                });
+
+                // Subsequent payments
+                for (let i = 1; i < numPayments; i++) {
+                    const dueDate = new Date();
+                    dueDate.setDate(dueDate.getDate() + (i * 30));
+
+                    newInstallments.push({
+                        client_id: client.id,
+                        amount: parseFloat(installmentAmount.toFixed(2)),
+                        due_date: dueDate.toISOString(),
+                        status: 'En attente'
+                    });
+                }
             }
 
-            const { error } = await supabase.from('client_installments').insert(newInstallments);
-            if (error) throw error;
+            const { error: insertError } = await supabase.from('client_installments').insert(newInstallments);
+            if (insertError) throw insertError;
+
             fetchInstallments();
         } catch (error) {
             console.error('Error generating schedule:', error);
@@ -161,35 +202,46 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
         }
     }
 
-    async function toggleInstallmentStatus(installment: Installment) {
+    async function setInstallmentStatus(installment: Installment, targetStatus: string) {
+        if (installment.status === targetStatus) return;
         setLoading(true);
         try {
-            const newStatus = installment.status === 'Payé' ? 'En attente' : 'Payé';
+            // 1. Calculate delta for amount_paid
+            const instAmount = Number(installment.amount);
+            const wasConsideredPaid = installment.status === 'Payé';
+            const isNowConsideredPaid = targetStatus === 'Payé';
 
-            // 1. Update Installment
+            let newTotalPaid = amountPaid;
+            if (!wasConsideredPaid && isNowConsideredPaid) {
+                newTotalPaid += instAmount;
+            } else if (wasConsideredPaid && !isNowConsideredPaid) {
+                newTotalPaid -= instAmount;
+            }
+
+            // 2. Update Installment
             const { error: instError } = await supabase
                 .from('client_installments')
-                .update({ status: newStatus })
+                .update({ status: targetStatus })
                 .eq('id', installment.id);
 
             if (instError) throw instError;
 
-            // 2. Adjust client total amount_paid
-            const instAmount = Number(installment.amount);
-            const newTotalPaid = newStatus === 'Payé' ? amountPaid + instAmount : amountPaid - instAmount;
+            // 3. Update Client if amount changed
+            if (newTotalPaid !== amountPaid) {
+                const { error: clientError } = await supabase
+                    .from('clients')
+                    .update({ amount_paid: newTotalPaid })
+                    .eq('id', client.id);
 
-            const { error: clientError } = await supabase
-                .from('clients')
-                .update({ amount_paid: newTotalPaid })
-                .eq('id', client.id);
+                if (clientError) throw clientError;
+                setFormData({ ...formData, amount_paid: newTotalPaid.toString() });
+            }
 
-            if (clientError) throw clientError;
-
-            setFormData({ ...formData, amount_paid: newTotalPaid.toString() });
             fetchInstallments();
             onUpdate();
         } catch (error) {
-            console.error('Error toggling status:', error);
+            console.error('Error updating status:', error);
+            alert('Erreur lors de la mise à jour du statut');
         } finally {
             setLoading(false);
         }
@@ -221,6 +273,37 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
             }
         });
     };
+
+    async function handleDeleteClient() {
+        if (!client.id || !confirm("Voulez-vous vraiment supprimer ce client ? Toutes les données associées (mensualités, paiements reçus) seront DEFINITIVEMENT supprimées.")) return;
+
+        setLoading(true);
+        try {
+            // First delete associated installments
+            const { error: instError } = await supabase
+                .from('client_installments')
+                .delete()
+                .eq('client_id', client.id);
+
+            if (instError) throw instError;
+
+            // Then delete the client
+            const { error: clientError } = await supabase
+                .from('clients')
+                .delete()
+                .eq('id', client.id);
+
+            if (clientError) throw clientError;
+
+            onUpdate();
+            onClose();
+        } catch (error) {
+            console.error('Error deleting client:', error);
+            alert('Erreur lors de la suppression du client');
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -269,6 +352,25 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                                             <option key={method} value={method}>{method}</option>
                                         ))}
                                     </select>
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Plateforme de Paiement</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {(['Mollie', 'GoCardless', 'Revolut'] as const).map(platform => (
+                                        <button
+                                            key={platform}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, billing_platform: platform })}
+                                            className={`py-2 px-1 text-[10px] font-black rounded-lg border transition-all ${formData.billing_platform === platform
+                                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
+                                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                                                }`}
+                                        >
+                                            {platform}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
@@ -381,16 +483,20 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                             ) : (
                                 installments.map((inst, idx) => {
                                     const isPaid = inst.status === 'Payé';
-                                    const isOverdue = !isPaid && new Date(inst.due_date) < new Date();
+                                    const isTransit = inst.status === 'En transit';
+                                    const isWaiting = !isPaid && !isTransit;
+                                    const isOverdue = isWaiting && new Date(inst.due_date) < new Date();
 
                                     return (
                                         <div
                                             key={inst.id}
                                             className={`p-4 rounded-xl border transition-all ${isPaid
                                                 ? 'bg-emerald-500/5 border-emerald-500/20'
-                                                : isOverdue
-                                                    ? 'bg-rose-500/5 border-rose-500/30'
-                                                    : 'bg-slate-800/40 border-slate-700/50'
+                                                : isTransit
+                                                    ? 'bg-indigo-500/5 border-indigo-500/30 shadow-inner shadow-indigo-500/10'
+                                                    : isOverdue
+                                                        ? 'bg-rose-500/5 border-rose-500/30'
+                                                        : 'bg-slate-800/40 border-slate-700/50'
                                                 }`}
                                         >
                                             <div className="flex justify-between items-start">
@@ -405,20 +511,26 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
 
                                                 <div className="flex flex-col items-end gap-2">
                                                     <div className="flex items-center text-[11px] font-bold text-slate-400">
-                                                        Reçu ?
+                                                        État du paiement
                                                     </div>
                                                     <div className="flex bg-slate-900/50 p-1 rounded-lg border border-slate-700">
                                                         <button
-                                                            onClick={() => !isPaid && toggleInstallmentStatus(inst)}
-                                                            className={`px-3 py-1 text-[10px] rounded-md transition-all font-bold ${isPaid ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
-                                                        >
-                                                            OUI
-                                                        </button>
-                                                        <button
-                                                            onClick={() => isPaid && toggleInstallmentStatus(inst)}
-                                                            className={`px-3 py-1 text-[10px] rounded-md transition-all font-bold ${!isPaid ? 'bg-slate-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                                            onClick={() => setInstallmentStatus(inst, 'En attente')}
+                                                            className={`px-3 py-1 text-[9px] rounded-md transition-all font-black ${isWaiting ? 'bg-slate-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                                                         >
                                                             NON
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setInstallmentStatus(inst, 'En transit')}
+                                                            className={`px-3 py-1 text-[9px] rounded-md transition-all font-black ${isTransit ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                                        >
+                                                            TRANSIT
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setInstallmentStatus(inst, 'Payé')}
+                                                            className={`px-3 py-1 text-[9px] rounded-md transition-all font-black ${isPaid ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                                        >
+                                                            OUI
                                                         </button>
                                                     </div>
                                                 </div>
@@ -444,21 +556,31 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-800 bg-slate-900/80 flex justify-end gap-3">
+                <div className="p-6 border-t border-slate-800 bg-slate-900/80 flex justify-between items-center px-8">
                     <button
-                        onClick={onClose}
-                        className="px-6 py-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
-                    >
-                        Annuler
-                    </button>
-                    <button
-                        onClick={handleSave}
+                        onClick={handleDeleteClient}
                         disabled={loading}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2 rounded-xl transition-all flex items-center gap-2 font-bold shadow-lg shadow-blue-900/40"
+                        className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-widest"
                     >
-                        {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                        Sauvegarder les modifications
+                        <Trash2 size={18} />
+                        Supprimer le client
                     </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onClose}
+                            className="px-6 py-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={loading}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2 rounded-xl transition-all flex items-center gap-2 font-bold shadow-lg shadow-blue-900/40"
+                        >
+                            {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            Sauvegarder les modifications
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

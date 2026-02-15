@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Search, Filter, DollarSign, Wallet, Clock, CreditCard, CheckCircle, Calendar, AlertTriangle } from 'lucide-react';
+import { Search, Filter, DollarSign, Wallet, Clock, CreditCard, CheckCircle, Calendar, AlertTriangle, Trash2, TrendingUp, RefreshCw } from 'lucide-react';
 import { ClientDetailsModal } from '../components/ClientDetailsModal';
 
 type Client = Database['public']['Tables']['clients']['Row'] & {
@@ -36,21 +36,81 @@ export function Clients() {
         }
     }
 
-    const filteredClients = clients.filter(client =>
-        client.contacts?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.contacts?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    async function handleDeleteClient(e: React.MouseEvent, client: Client) {
+        e.stopPropagation();
+        if (!confirm("Voulez-vous vraiment supprimer ce client ? Toutes les données associées seront DEFINITIVEMENT supprimées.")) return;
+
+        try {
+            // First delete installments (cascade should handle it, but for safety)
+            const { error: instError } = await supabase
+                .from('client_installments')
+                .delete()
+                .eq('client_id', client.id);
+
+            if (instError) throw instError;
+
+            const { error: clientError } = await supabase
+                .from('clients')
+                .delete()
+                .eq('id', client.id);
+
+            if (clientError) throw clientError;
+            fetchClients();
+        } catch (error) {
+            console.error('Error deleting client:', error);
+            alert('Erreur lors de la suppression');
+        }
+    }
+
+    const filteredClients = clients
+        .filter(client =>
+            client.contacts?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            client.contacts?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            const getPriority = (client: Client) => {
+                const inst = client.client_installments || [];
+                const hasPending = inst.some(i => i.status === 'En attente' || !i.status);
+                const hasTransit = inst.some(i => i.status === 'En transit');
+
+                if (inst.length === 0) {
+                    const total = Number(client.deal_amount || 0);
+                    const paid = Number(client.amount_paid || 0);
+                    return (total - paid > 0) ? 0 : 2;
+                }
+
+                if (hasPending) return 0;
+                if (hasTransit) return 1;
+                return 2;
+            };
+            return getPriority(a) - getPriority(b);
+        });
 
     // KPI Calculations
     const stats = clients.reduce((acc, client) => {
         const total = Number(client.deal_amount || 0);
-        const paid = Number(client.amount_paid || 0);
+
+        // Primary source: installments
+        const inst = client.client_installments || [];
+        const hasInst = inst.length > 0;
+
+        const paid = hasInst
+            ? inst.filter(i => i.status === 'Payé').reduce((sum, i) => sum + Number(i.amount), 0)
+            : Number(client.amount_paid || 0);
+
+        const transit = inst.filter(i => i.status === 'En transit').reduce((sum, i) => sum + Number(i.amount), 0);
+
+        const pending = hasInst
+            ? inst.filter(i => i.status === 'En attente' || !i.status).reduce((sum, i) => sum + Number(i.amount), 0)
+            : Math.max(0, total - paid - transit);
+
         return {
             total: acc.total + total,
             paid: acc.paid + paid,
-            pending: acc.pending + (total - paid)
+            transit: acc.transit + transit,
+            pending: acc.pending + pending
         };
-    }, { total: 0, paid: 0, pending: 0 });
+    }, { total: 0, paid: 0, transit: 0, pending: 0 });
 
     const getNextDueDate = (installments: Database['public']['Tables']['client_installments']['Row'][]) => {
         const pending = installments
@@ -68,7 +128,7 @@ export function Clients() {
             </div>
 
             {/* Financial Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <CreditCard size={64} className="text-blue-400" />
@@ -95,9 +155,21 @@ export function Clients() {
 
                 <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <TrendingUp size={64} className="text-indigo-400" />
+                    </div>
+                    <p className="text-slate-400 text-sm font-medium mb-1">CA en Transit (Mollie/Revo)</p>
+                    <h3 className="text-2xl font-bold text-indigo-400">{stats.transit.toLocaleString('fr-FR')} €</h3>
+                    <div className="mt-4 flex items-center gap-2 text-xs text-indigo-400 bg-indigo-400/10 w-fit px-2 py-1 rounded-lg">
+                        <RefreshCw size={12} className="animate-spin-slow" />
+                        Paiements validés non reçus
+                    </div>
+                </div>
+
+                <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Clock size={64} className="text-amber-400" />
                     </div>
-                    <p className="text-slate-400 text-sm font-medium mb-1">CA en Attente</p>
+                    <p className="text-slate-400 text-sm font-medium mb-1">CA en Attente (Relances)</p>
                     <h3 className="text-2xl font-bold text-amber-400">{stats.pending.toLocaleString('fr-FR')} €</h3>
                     <div className="mt-4 flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 w-fit px-2 py-1 rounded-lg">
                         <Clock size={12} />
@@ -153,7 +225,7 @@ export function Clients() {
                                     const isOverdue = nextDue && nextDue < new Date();
 
                                     return (
-                                        <tr key={client.id} className="hover:bg-slate-700/50 transition-colors">
+                                        <tr key={client.id} className="hover:bg-slate-700/50 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <div className="font-bold text-white uppercase tracking-tight">{client.contacts?.nom || 'Inconnu'}</div>
                                                 <div className="text-[10px] text-slate-500">Signé le {new Date(client.created_at || '').toLocaleDateString('fr-FR')}</div>
@@ -185,6 +257,11 @@ export function Clients() {
                                                             )}
                                                         </div>
                                                     </div>
+                                                ) : client.client_installments?.some(i => i.status === 'En transit') ? (
+                                                    <div className="flex items-center gap-2 text-purple-400 font-bold italic text-[10px]">
+                                                        <RefreshCw size={14} className="animate-spin-slow" />
+                                                        En transit
+                                                    </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 text-emerald-500/50 italic text-[10px]">
                                                         <CheckCircle size={14} />
@@ -201,12 +278,21 @@ export function Clients() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right pr-6">
-                                                <button
-                                                    onClick={() => setSelectedClient(client)}
-                                                    className="bg-white/5 hover:bg-white text-white hover:text-slate-900 border border-white/10 px-4 py-2 rounded-xl text-xs font-black transition-all uppercase tracking-tighter"
-                                                >
-                                                    Gérer Finance
-                                                </button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => setSelectedClient(client)}
+                                                        className="bg-white/5 hover:bg-white text-white hover:text-slate-900 border border-white/10 px-4 py-2 rounded-xl text-xs font-black transition-all uppercase tracking-tighter"
+                                                    >
+                                                        Gérer Finance
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDeleteClient(e, client)}
+                                                        className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
+                                                        title="Supprimer le client"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

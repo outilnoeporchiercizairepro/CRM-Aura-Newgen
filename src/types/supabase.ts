@@ -17,11 +17,12 @@ export type Database = {
       client_installments: {
         Row: {
           amount: number
-          client_id: string | null
-          created_at: string | null
+          client_id: string
+          created_at: string
           due_date: string
           id: string
           status: string | null
+          is_dispatched: boolean
         }
         Insert: {
           amount: number
@@ -30,6 +31,7 @@ export type Database = {
           due_date: string
           id?: string
           status?: string | null
+          is_dispatched?: boolean
         }
         Update: {
           amount?: number
@@ -38,6 +40,7 @@ export type Database = {
           due_date?: string
           id?: string
           status?: string | null
+          is_dispatched?: boolean
         }
         Relationships: [
           {
@@ -63,6 +66,7 @@ export type Database = {
           | null
           setter_commission_percentage: number | null
           is_dispatched: boolean | null
+          billing_platform: Database["public"]["Enums"]["billing_platform_enum"]
         }
         Insert: {
           amount_paid?: number | null
@@ -77,6 +81,7 @@ export type Database = {
           | null
           setter_commission_percentage?: number | null
           is_dispatched?: boolean | null
+          billing_platform?: Database["public"]["Enums"]["billing_platform_enum"]
         }
         Update: {
           amount_paid?: number | null
@@ -91,6 +96,7 @@ export type Database = {
           | null
           setter_commission_percentage?: number | null
           is_dispatched?: boolean | null
+          billing_platform?: Database["public"]["Enums"]["billing_platform_enum"]
         }
         Relationships: [
           {
@@ -111,6 +117,8 @@ export type Database = {
           id: string
           name: string
           type: string
+          paid_by: Database["public"]["Enums"]["team_member_enum"] | null
+          is_deducted: boolean | null
         }
         Insert: {
           amount?: number
@@ -120,6 +128,8 @@ export type Database = {
           id?: string
           name: string
           type: string
+          paid_by?: Database["public"]["Enums"]["team_member_enum"] | null
+          is_deducted?: boolean | null
         }
         Update: {
           amount?: number
@@ -129,6 +139,8 @@ export type Database = {
           id?: string
           name?: string
           type?: string
+          paid_by?: Database["public"]["Enums"]["team_member_enum"] | null
+          is_deducted?: boolean | null
         }
         Relationships: []
       }
@@ -240,6 +252,7 @@ export type Database = {
       provenance_enum: "Tally" | "DM" | "Skool"
       social_media_enum: "Youtube" | "Instagram" | "Linkedin" | "Tiktok"
       team_member_enum: "Noé" | "Baptiste" | "Imrane"
+      billing_platform_enum: "Mollie" | "GoCardless" | "Revolut"
     }
     CompositeTypes: {
       [_ in never]: never
