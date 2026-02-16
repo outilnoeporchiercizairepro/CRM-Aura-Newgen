@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { X, Save, Trash2, Loader2, Link as LinkIcon } from 'lucide-react';
+import { X, Save, Trash2, Loader2, Link as LinkIcon, Info, FileText, StickyNote } from 'lucide-react';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
     leads: Database['public']['Tables']['leads']['Row'] | null
@@ -21,6 +21,7 @@ const JOB_STATUSES: JobStatus[] = ['Entrepreneur', 'Demandeur d\'emploi', 'Etudi
 
 export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly = false }: Props) {
     const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'info' | 'presentation' | 'notes'>('info');
     const [formData, setFormData] = useState({
         nom: contact.nom,
         email: contact.email || '',
@@ -112,121 +113,187 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Tabs Navigation */}
+                <div className="border-b border-slate-800 bg-slate-900/30">
+                    <div className="flex gap-1 px-6">
+                        <button
+                            onClick={() => setActiveTab('info')}
+                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative ${activeTab === 'info'
+                                ? 'text-blue-400 border-b-2 border-blue-400'
+                                : 'text-slate-400 hover:text-slate-300'
+                                }`}
+                        >
+                            <Info size={16} />
+                            Informations
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('presentation')}
+                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative ${activeTab === 'presentation'
+                                ? 'text-blue-400 border-b-2 border-blue-400'
+                                : 'text-slate-400 hover:text-slate-300'
+                                }`}
+                        >
+                            <FileText size={16} />
+                            Présentation
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('notes')}
+                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative ${activeTab === 'notes'
+                                ? 'text-blue-400 border-b-2 border-blue-400'
+                                : 'text-slate-400 hover:text-slate-300'
+                                }`}
+                        >
+                            <StickyNote size={16} />
+                            Notes Internes
+                        </button>
+                    </div>
+                </div>
 
-                    {/* Matched Lead Info */}
-                    {contact.leads ? (
-                        <div className="bg-blue-900/10 border border-blue-500/20 rounded-xl p-4">
-                            <div className="flex items-center gap-2 mb-2 text-blue-400">
-                                <LinkIcon size={16} />
-                                <h3 className="font-semibold text-sm uppercase tracking-wide">Lead Associé</h3>
-                            </div>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-white font-medium">{contact.leads.prenom} {contact.leads.nom}</p>
-                                    <p className="text-sm text-slate-400">Source: <span className="text-slate-300">{contact.leads.provenance}</span></p>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                    {/* Tab: Informations */}
+                    {activeTab === 'info' && (
+                        <div className="space-y-6">
+                            {/* Matched Lead Info */}
+                            {contact.leads ? (
+                                <div className="bg-blue-900/10 border border-blue-500/20 rounded-xl p-4">
+                                    <div className="flex items-center gap-2 mb-2 text-blue-400">
+                                        <LinkIcon size={16} />
+                                        <h3 className="font-semibold text-sm uppercase tracking-wide">Lead Associé</h3>
+                                    </div>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-white font-medium">{contact.leads.prenom} {contact.leads.nom}</p>
+                                            <p className="text-sm text-slate-400">Source: <span className="text-slate-300">{contact.leads.provenance}</span></p>
+                                        </div>
+                                        <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
+                                            {contact.leads.social_media || 'N/A'}
+                                        </span>
+                                    </div>
                                 </div>
-                                <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
-                                    {contact.leads.social_media || 'N/A'}
-                                </span>
+                            ) : (
+                                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 flex items-center justify-between">
+                                    <span className="text-slate-400 text-sm">Aucun lead associé</span>
+                                    {/* Could add a manual link button here later */}
+                                </div>
+                            )}
+
+                            {/* Main Fields */}
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Email</label>
+                                        <input
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            disabled={readOnly}
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Téléphone</label>
+                                        <input
+                                            type="tel"
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            disabled={readOnly}
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Statut Pro</label>
+                                        <select
+                                            value={formData.job_status || ''}
+                                            onChange={(e) => setFormData({ ...formData, job_status: e.target.value as any })}
+                                            disabled={readOnly}
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="">Sélectionner...</option>
+                                            {JOB_STATUSES.map(status => (
+                                                <option key={status} value={status}>{status}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Date du 1er closing</label>
+                                        <input
+                                            type="date"
+                                            value={formData.first_closing_date}
+                                            onChange={(e) => setFormData({ ...formData, first_closing_date: e.target.value })}
+                                            disabled={readOnly}
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Source</label>
+                                    <input
+                                        type="text"
+                                        value={formData.source}
+                                        onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                                        disabled={readOnly}
+                                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                        placeholder="Lien direct (par défaut)"
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 flex items-center justify-between">
-                            <span className="text-slate-400 text-sm">Aucun lead associé</span>
-                            {/* Could add a manual link button here later */}
                         </div>
                     )}
 
-                    {/* Main Fields */}
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                    {/* Tab: Présentation */}
+                    {activeTab === 'presentation' && (
+                        <div className="space-y-4">
+                            <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
+                                <p className="text-xs text-slate-400 mb-3">
+                                    💡 Utilisez cet espace pour noter le pitch, la bio, ou toute présentation du contact.
+                                </p>
+                            </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Email</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Présentation du Contact</label>
+                                <textarea
+                                    rows={18}
+                                    value={formData.presentation}
+                                    onChange={(e) => setFormData({ ...formData, presentation: e.target.value })}
                                     disabled={readOnly}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white text-sm focus:border-blue-500 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed"
+                                    placeholder="Pitch ou bio du contact...\n\nVous pouvez écrire autant que nécessaire ici."
                                 />
+                                <p className="text-xs text-slate-500 mt-2">
+                                    {formData.presentation.length} caractères
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tab: Notes Internes */}
+                    {activeTab === 'notes' && (
+                        <div className="space-y-4">
+                            <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
+                                <p className="text-xs text-slate-400 mb-3">
+                                    📝 Notes privées pour le suivi interne : rendez-vous, relances, observations, etc.
+                                </p>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Téléphone</label>
-                                <input
-                                    type="tel"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Notes Internes</label>
+                                <textarea
+                                    rows={18}
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                     disabled={readOnly}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white text-sm focus:border-blue-500 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed"
+                                    placeholder="Notes de rendez-vous, suivi, etc...\n\nCes notes sont privées et ne seront pas visibles par le contact."
                                 />
+                                <p className="text-xs text-slate-500 mt-2">
+                                    {formData.notes.length} caractères
+                                </p>
                             </div>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Statut Pro</label>
-                                <select
-                                    value={formData.job_status || ''}
-                                    onChange={(e) => setFormData({ ...formData, job_status: e.target.value as any })}
-                                    disabled={readOnly}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <option value="">Sélectionner...</option>
-                                    {JOB_STATUSES.map(status => (
-                                        <option key={status} value={status}>{status}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Date du 1er closing</label>
-                                <input
-                                    type="date"
-                                    value={formData.first_closing_date}
-                                    onChange={(e) => setFormData({ ...formData, first_closing_date: e.target.value })}
-                                    disabled={readOnly}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Source</label>
-                            <input
-                                type="text"
-                                value={formData.source}
-                                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                                disabled={readOnly}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                placeholder="Lien direct (par défaut)"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Présentation</label>
-                            <textarea
-                                rows={3}
-                                value={formData.presentation}
-                                onChange={(e) => setFormData({ ...formData, presentation: e.target.value })}
-                                disabled={readOnly}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                placeholder="Pitch ou bio du contact..."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Notes Internes</label>
-                            <textarea
-                                rows={6}
-                                value={formData.notes}
-                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                disabled={readOnly}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                placeholder="Notes de rendez-vous, suivi, etc..."
-                            />
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Footer Actions */}
