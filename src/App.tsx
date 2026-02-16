@@ -9,6 +9,7 @@ import { Clients } from './pages/Clients';
 import { Billing } from './pages/Billing';
 import { Expenses } from './pages/Expenses';
 import { Login } from './pages/Login';
+import { Setter } from './pages/Setter';
 import { Loader2 } from 'lucide-react';
 
 const Settings = () => <div>Paramètres (Construction)</div>;
@@ -66,6 +67,7 @@ function App() {
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/billing" element={<Billing />} />
                   <Route path="/expenses" element={<Expenses />} />
+                  <Route path="/setter" element={<Setter />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

@@ -14,6 +14,10 @@ export function Clients() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+    const [showFilters, setShowFilters] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('Tous');
+    const [memberFilter, setMemberFilter] = useState('Tous');
+    const [platformFilter, setPlatformFilter] = useState('Tous');
 
     useEffect(() => {
         fetchClients();
@@ -63,10 +67,25 @@ export function Clients() {
     }
 
     const filteredClients = clients
-        .filter(client =>
-            client.contacts?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            client.contacts?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        .filter(client => {
+            const matchesSearch = client.contacts?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                client.contacts?.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const inst = client.client_installments || [];
+            const hasPending = inst.some(i => i.status === 'En attente' || !i.status);
+            const hasTransit = inst.some(i => i.status === 'En transit');
+            const isFullyPaid = inst.length > 0 && inst.every(i => i.status === 'Payé');
+
+            let matchesStatus = true;
+            if (statusFilter === 'En attente') matchesStatus = hasPending;
+            else if (statusFilter === 'En transit') matchesStatus = hasTransit;
+            else if (statusFilter === 'Payé') matchesStatus = isFullyPaid;
+
+            const matchesMember = memberFilter === 'Tous' || client.closed_by === memberFilter;
+            const matchesPlatform = platformFilter === 'Tous' || client.billing_platform === platformFilter;
+
+            return matchesSearch && matchesStatus && matchesMember && matchesPlatform;
+        })
         .sort((a, b) => {
             const getPriority = (client: Client) => {
                 const inst = client.client_installments || [];
@@ -189,10 +208,89 @@ export function Clients() {
                         className="w-full bg-slate-800 border border-slate-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
                     />
                 </div>
-                <button className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-700 transition-colors">
-                    <Filter size={20} />
-                    Filtres
-                </button>
+                <div className="relative">
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`bg-slate-800 border px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${showFilters || statusFilter !== 'Tous' || memberFilter !== 'Tous' || platformFilter !== 'Tous'
+                            ? 'border-blue-500 text-blue-400'
+                            : 'border-slate-700 text-slate-300 hover:bg-slate-700'
+                            }`}
+                    >
+                        <Filter size={20} />
+                        Filtres {(statusFilter !== 'Tous' || memberFilter !== 'Tous' || platformFilter !== 'Tous') && "Active"}
+                    </button>
+
+                    {showFilters && (
+                        <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-20 p-4 space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Statut Paiement</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['Tous', 'Payé', 'En transit', 'En attente'].map(s => (
+                                        <button
+                                            key={s}
+                                            onClick={() => setStatusFilter(s)}
+                                            className={`text-[10px] py-1 px-2 rounded-lg border font-bold transition-all ${statusFilter === s
+                                                ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                                                : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                                                }`}
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Membre</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['Tous', 'Noé', 'Imrane', 'Baptiste'].map(m => (
+                                        <button
+                                            key={m}
+                                            onClick={() => setMemberFilter(m)}
+                                            className={`text-[10px] py-1 px-2 rounded-lg border font-bold transition-all ${memberFilter === m
+                                                ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                                                : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                                                }`}
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Plateforme</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['Tous', 'Mollie', 'Revolut', 'GoCardless'].map(p => (
+                                        <button
+                                            key={p}
+                                            onClick={() => setPlatformFilter(p)}
+                                            className={`text-[10px] py-1 px-2 rounded-lg border font-bold transition-all ${platformFilter === p
+                                                ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400'
+                                                : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                                                }`}
+                                        >
+                                            {p}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {(statusFilter !== 'Tous' || memberFilter !== 'Tous' || platformFilter !== 'Tous') && (
+                                <button
+                                    onClick={() => {
+                                        setStatusFilter('Tous');
+                                        setMemberFilter('Tous');
+                                        setPlatformFilter('Tous');
+                                    }}
+                                    className="w-full py-2 text-[10px] font-black uppercase text-rose-400 hover:text-rose-300 transition-colors border-t border-slate-700 mt-2 pt-2"
+                                >
+                                    Effacer les filtres
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
@@ -203,6 +301,7 @@ export function Clients() {
                                 <th className="px-6 py-4">Client</th>
                                 <th className="px-6 py-4">Deals & Paiements</th>
                                 <th className="px-6 py-4">Prochaine Échéance</th>
+                                <th className="px-6 py-4 text-center">Plateforme</th>
                                 <th className="px-6 py-4">Qui encaisse</th>
                                 <th className="px-6 py-4 text-right pr-10">Gestion</th>
                             </tr>
@@ -269,9 +368,21 @@ export function Clients() {
                                                     </div>
                                                 )}
                                             </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${client.billing_platform === 'Mollie' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' :
+                                                    client.billing_platform === 'Revolut' ? 'border-pink-500/50 text-pink-400 bg-pink-500/10' :
+                                                        'border-blue-500/50 text-blue-400 bg-blue-500/10'
+                                                    }`}>
+                                                    {client.billing_platform || 'N/A'}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-black text-white">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white ${client.closed_by === 'Noé' ? 'bg-blue-600' :
+                                                        client.closed_by === 'Imrane' ? 'bg-amber-600' :
+                                                            client.closed_by === 'Baptiste' ? 'bg-emerald-600' :
+                                                                'bg-slate-600'
+                                                        }`}>
                                                         {client.closed_by?.charAt(0)}
                                                     </div>
                                                     <span className="text-xs text-slate-300 font-medium">{client.closed_by}</span>

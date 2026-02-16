@@ -14,11 +14,12 @@ interface Props {
     isOpen: boolean;
     onClose: () => void;
     onUpdate: () => void;
+    readOnly?: boolean;
 }
 
 const JOB_STATUSES: JobStatus[] = ['Entrepreneur', 'Demandeur d\'emploi', 'Etudiant', 'Salarié'];
 
-export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) {
+export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly = false }: Props) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         nom: contact.nom,
@@ -27,7 +28,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
         job_status: contact.job_status || null,
         first_closing_date: contact.first_closing_date || '',
         presentation: contact.presentation || '',
-        notes: contact.notes || ''
+        notes: contact.notes || '',
+        source: contact.source || ''
     });
 
     // Reset form when contact changes
@@ -39,7 +41,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
             job_status: contact.job_status || null,
             first_closing_date: contact.first_closing_date || '',
             presentation: contact.presentation || '',
-            notes: contact.notes || ''
+            notes: contact.notes || '',
+            source: contact.source || ''
         });
     }, [contact]);
 
@@ -57,7 +60,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
                     job_status: formData.job_status,
                     first_closing_date: formData.first_closing_date || null,
                     presentation: formData.presentation,
-                    notes: formData.notes
+                    notes: formData.notes,
+                    source: formData.source
                 })
                 .eq('id', contact.id);
 
@@ -144,7 +148,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                    disabled={readOnly}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                             </div>
                             <div>
@@ -153,7 +158,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
                                     type="tel"
                                     value={formData.phone}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                    disabled={readOnly}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                             </div>
                         </div>
@@ -164,7 +170,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
                                 <select
                                     value={formData.job_status || ''}
                                     onChange={(e) => setFormData({ ...formData, job_status: e.target.value as any })}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none appearance-none"
+                                    disabled={readOnly}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <option value="">Sélectionner...</option>
                                     {JOB_STATUSES.map(status => (
@@ -178,9 +185,22 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
                                     type="date"
                                     value={formData.first_closing_date}
                                     onChange={(e) => setFormData({ ...formData, first_closing_date: e.target.value })}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                    disabled={readOnly}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Source</label>
+                            <input
+                                type="text"
+                                value={formData.source}
+                                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                                disabled={readOnly}
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                placeholder="Lien direct (par défaut)"
+                            />
                         </div>
 
                         <div>
@@ -189,7 +209,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
                                 rows={3}
                                 value={formData.presentation}
                                 onChange={(e) => setFormData({ ...formData, presentation: e.target.value })}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none resize-none"
+                                disabled={readOnly}
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 placeholder="Pitch ou bio du contact..."
                             />
                         </div>
@@ -200,7 +221,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
                                 rows={6}
                                 value={formData.notes}
                                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none resize-none"
+                                disabled={readOnly}
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 placeholder="Notes de rendez-vous, suivi, etc..."
                             />
                         </div>
@@ -208,23 +230,25 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate }: Props) 
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-6 border-t border-slate-800 flex justify-between items-center bg-slate-900/50">
-                    <button
-                        onClick={handleDelete}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                    >
-                        <Trash2 size={16} />
-                        Supprimer
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={loading}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
-                    >
-                        {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                        Enregistrer
-                    </button>
-                </div>
+                {!readOnly && (
+                    <div className="p-6 border-t border-slate-800 flex justify-between items-center bg-slate-900/50">
+                        <button
+                            onClick={handleDelete}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                        >
+                            <Trash2 size={16} />
+                            Supprimer
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={loading}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
+                        >
+                            {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            Enregistrer
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

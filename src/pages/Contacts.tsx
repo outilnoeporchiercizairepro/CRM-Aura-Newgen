@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
 import { Search, Filter, Phone, Mail, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, AlertCircle, Wallet, PieChart as PieChartIcon, BarChart3 as BarChartIcon } from 'lucide-react';
@@ -58,12 +58,14 @@ export function Contacts() {
         }
     }
 
-    const filteredContacts = contacts.filter(contact => {
-        const matchesSearch = contact.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            contact.email?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    });
+    const filteredContacts = useMemo(() => {
+        return contacts.filter(contact => {
+            const matchesSearch = contact.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                contact.email?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
+    }, [contacts, searchTerm, statusFilter]);
 
     const handleStatusUpdate = (contactId: string, newStatus: string) => {
         setContacts(prev => prev.map(c =>
@@ -72,45 +74,60 @@ export function Contacts() {
     };
 
     // Dashboard Calculations
-    const totalContacts = contacts.length;
-    const closedContacts = contacts.filter(c => c.status === 'Closé').length;
-    const scheduledCalls = contacts.filter(c => c.status === 'Call planifié').length;
-    const noShow = contacts.filter(c => c.status === 'Pas venu').length;
-    const noBudget = contacts.filter(c => c.status === 'Pas budget').length;
+    const stats = useMemo(() => {
+        const total = contacts.length;
+        const closed = contacts.filter(c => c.status === 'Closé').length;
+        const scheduled = contacts.filter(c => c.status === 'Call planifié').length;
+        const noShowCount = contacts.filter(c => c.status === 'Pas venu').length;
+        const noBudgetCount = contacts.filter(c => c.status === 'Pas budget').length;
 
-    const conversionRate = totalContacts > 0 ? (closedContacts / totalContacts) * 100 : 0;
-    const noShowRate = totalContacts > 0 ? (noShow / totalContacts) * 100 : 0;
+        const convRate = total > 0 ? (closed / total) * 100 : 0;
+        const nSRate = total > 0 ? (noShowCount / total) * 100 : 0;
 
-    // Appointment taken = anyone who had a slot or is scheduled or failed to come or budget issue
-    const appointmentsCount = contacts.filter(c =>
-        ['Call planifié', 'Closé', 'Pas venu', 'Pas budget', 'Attente paiement', 'Attente retour'].includes(c.status || '')
-    ).length;
-    const noBudgetRate = appointmentsCount > 0 ? (noBudget / appointmentsCount) * 100 : 0;
+        const appointments = contacts.filter(c =>
+            ['Call planifié', 'Closé', 'Pas venu', 'Pas budget', 'Attente paiement', 'Attente retour'].includes(c.status || '')
+        ).length;
+        const nBRate = appointments > 0 ? (noBudgetCount / appointments) * 100 : 0;
+
+        return {
+            total,
+            closed,
+            scheduled,
+            noShow: noShowCount,
+            noBudget: noBudgetCount,
+            convRate,
+            nSRate,
+            nBRate
+        };
+    }, [contacts]);
 
     // Charts Data
-    const statusDistribution = [
-        { name: 'Closé', value: closedContacts, color: '#10b981' },
-        { name: 'Call planifié', value: scheduledCalls, color: '#3b82f6' },
-        { name: 'Pas venu', value: noShow, color: '#ef4444' },
-        { name: 'Pas budget', value: noBudget, color: '#f59e0b' },
-        { name: 'Autres', value: totalContacts - (closedContacts + scheduledCalls + noShow + noBudget), color: '#64748b' }
-    ].filter(d => d.value > 0);
+    const chartsData = useMemo(() => {
+        const statusDist = [
+            { name: 'Closé', value: stats.closed, color: '#10b981' },
+            { name: 'Call planifié', value: stats.scheduled, color: '#3b82f6' },
+            { name: 'Pas venu', value: stats.noShow, color: '#ef4444' },
+            { name: 'Pas budget', value: stats.noBudget, color: '#f59e0b' },
+            { name: 'Autres', value: stats.total - (stats.closed + stats.scheduled + stats.noShow + stats.noBudget), color: '#64748b' }
+        ].filter(d => d.value > 0);
 
-    // Group contacts by date (last 7 days or weeks)
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-    }).reverse();
+        const last7 = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        }).reverse();
 
-    const contactsByDate = last7Days.map(dateStr => {
-        const count = contacts.filter(c => {
-            if (!c.created_at) return false;
-            const d = new Date(c.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-            return d === dateStr;
-        }).length;
-        return { date: dateStr, count };
-    });
+        const byDate = last7.map(dateStr => {
+            const count = contacts.filter(c => {
+                if (!c.created_at) return false;
+                const d = new Date(c.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+                return d === dateStr;
+            }).length;
+            return { date: dateStr, count };
+        });
+
+        return { statusDist, byDate };
+    }, [contacts, stats]);
 
     return (
         <div className="space-y-6">
@@ -132,7 +149,7 @@ export function Contacts() {
                         <Users size={32} className="text-blue-400" />
                     </div>
                     <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">Total Contacts</p>
-                    <h3 className="text-xl font-bold text-white leading-none">{totalContacts}</h3>
+                    <h3 className="text-xl font-bold text-white leading-none">{stats.total}</h3>
                     <div className="mt-2 text-[9px] text-blue-400/60 font-medium">Flux Global</div>
                 </div>
 
@@ -141,8 +158,8 @@ export function Contacts() {
                         <TrendingUp size={32} className="text-emerald-400" />
                     </div>
                     <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">Clients Closés</p>
-                    <h3 className="text-xl font-bold text-emerald-400 leading-none">{closedContacts}</h3>
-                    <div className="mt-2 text-[9px] text-emerald-400/60 font-medium">{conversionRate.toFixed(1)}% Conv.</div>
+                    <h3 className="text-xl font-bold text-emerald-400 leading-none">{stats.closed}</h3>
+                    <div className="mt-2 text-[9px] text-emerald-400/60 font-medium">{stats.convRate.toFixed(1)}% Conv.</div>
                 </div>
 
                 <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl relative overflow-hidden group">
@@ -150,7 +167,7 @@ export function Contacts() {
                         <Calendar size={32} className="text-blue-400" />
                     </div>
                     <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">Calls Planifiés</p>
-                    <h3 className="text-xl font-bold text-blue-400 leading-none">{scheduledCalls}</h3>
+                    <h3 className="text-xl font-bold text-blue-400 leading-none">{stats.scheduled}</h3>
                     <div className="mt-2 text-[9px] text-blue-400/60 font-medium">Pipeline actif</div>
                 </div>
 
@@ -159,8 +176,8 @@ export function Contacts() {
                         <AlertCircle size={32} className="text-red-400" />
                     </div>
                     <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">No-Shows</p>
-                    <h3 className="text-xl font-bold text-red-400 leading-none">{noShow}</h3>
-                    <div className="mt-2 text-[9px] text-red-400/60 font-medium">{noShowRate.toFixed(1)}% Taux</div>
+                    <h3 className="text-xl font-bold text-red-400 leading-none">{stats.noShow}</h3>
+                    <div className="mt-2 text-[9px] text-red-400/60 font-medium">{stats.nSRate.toFixed(1)}% Taux</div>
                 </div>
 
                 <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl relative overflow-hidden group">
@@ -168,8 +185,8 @@ export function Contacts() {
                         <Wallet size={32} className="text-amber-400" />
                     </div>
                     <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">Pas de Budget</p>
-                    <h3 className="text-xl font-bold text-amber-400 leading-none">{noBudget}</h3>
-                    <div className="mt-2 text-[9px] text-amber-400/60 font-medium">{noBudgetRate.toFixed(1)}% Taux</div>
+                    <h3 className="text-xl font-bold text-amber-400 leading-none">{stats.noBudget}</h3>
+                    <div className="mt-2 text-[9px] text-amber-400/60 font-medium">{stats.nBRate.toFixed(1)}% Taux</div>
                 </div>
 
                 <div className="bg-emerald-500/10 border-2 border-emerald-500/20 p-4 rounded-xl relative overflow-hidden group ring-1 ring-emerald-500/30">
@@ -177,7 +194,7 @@ export function Contacts() {
                         <TrendingUp size={32} className="text-emerald-500" />
                     </div>
                     <p className="text-emerald-400 text-[10px] font-bold mb-1 uppercase tracking-wider">Taux Conversion</p>
-                    <h3 className="text-2xl font-black text-emerald-400 leading-none">{conversionRate.toFixed(1)}%</h3>
+                    <h3 className="text-2xl font-black text-emerald-400 leading-none">{stats.convRate.toFixed(1)}%</h3>
                     <div className="mt-2 text-[9px] text-emerald-400/80 font-bold uppercase tracking-tighter italic">KPI Performance</div>
                 </div>
             </div>
@@ -190,7 +207,7 @@ export function Contacts() {
                     </h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={contactsByDate}>
+                            <BarChart data={chartsData.byDate}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                                 <XAxis
                                     dataKey="date"
@@ -228,7 +245,7 @@ export function Contacts() {
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={statusDistribution}
+                                    data={chartsData.statusDist}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={60}
@@ -236,7 +253,7 @@ export function Contacts() {
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {statusDistribution.map((entry, index) => (
+                                    {chartsData.statusDist.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
@@ -299,6 +316,7 @@ export function Contacts() {
                                 <th className="px-6 py-4">Email</th>
                                 <th className="px-6 py-4">Téléphone</th>
                                 <th className="px-6 py-4">Statut Pipeline</th>
+                                <th className="px-6 py-4">Source</th>
                                 <th className="px-6 py-4">Date du 1er closing</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
@@ -344,6 +362,14 @@ export function Contacts() {
                                                 contactId={contact.id}
                                                 onStatusChange={(newStatus) => handleStatusUpdate(contact.id, newStatus)}
                                             />
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span
+                                                className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 max-w-[120px] truncate block"
+                                                title={contact.source || 'Lien direct'}
+                                            >
+                                                {contact.source || 'Lien direct'}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-slate-400">
                                             <div className="flex items-center gap-2">

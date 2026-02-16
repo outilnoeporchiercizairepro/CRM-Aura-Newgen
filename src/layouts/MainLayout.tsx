@@ -8,7 +8,8 @@ import {
     Settings,
     LogOut,
     Wallet,
-    TrendingDown
+    TrendingDown,
+    Target
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
@@ -45,6 +46,7 @@ export function MainLayout({ children }: Props) {
                     <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Tableau de bord" />
                     <NavItem to="/leads" icon={<UserPlus size={20} />} label="Leads" />
                     <NavItem to="/contacts" icon={<Users size={20} />} label="Contacts" />
+                    <NavItem to="/setter" icon={<Target size={20} />} label="Setter (s-i)" />
                     <NavItem to="/clients" icon={<Briefcase size={20} />} label="Clients" />
                     <NavItem to="/billing" icon={<Wallet size={20} />} label="Facturation" />
                     <NavItem to="/expenses" icon={<TrendingDown size={20} />} label="Dépenses" />

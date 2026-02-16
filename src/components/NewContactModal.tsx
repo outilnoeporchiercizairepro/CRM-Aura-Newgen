@@ -15,7 +15,8 @@ export function NewContactModal({ isOpen, onClose, onSuccess }: Props) {
         nom: '',
         email: '',
         phone: '',
-        status: 'Call planifié' as Database['public']['Enums']['contact_status_enum']
+        status: 'Call planifié' as Database['public']['Enums']['contact_status_enum'],
+        source: 'Lien direct'
     });
 
     if (!isOpen) return null;
@@ -49,7 +50,7 @@ export function NewContactModal({ isOpen, onClose, onSuccess }: Props) {
 
             onSuccess();
             onClose();
-            setFormData({ nom: '', email: '', phone: '', status: 'Call planifié' });
+            setFormData({ nom: '', email: '', phone: '', status: 'Call planifié', source: '' });
         } catch (error) {
             console.error('Error creating contact:', error);
             alert('Erreur lors de la création du contact');
@@ -101,6 +102,17 @@ export function NewContactModal({ isOpen, onClose, onSuccess }: Props) {
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
                             placeholder="06 12 34 56 78"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">Source</label>
+                        <input
+                            type="text"
+                            value={formData.source}
+                            onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                            placeholder="Ex: Instagram, Tally, Event..."
                         />
                     </div>
 
