@@ -228,7 +228,9 @@ export function Setter() {
                                                 contact.status === 'Call planifié' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                                                     contact.status === 'Pas budget' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
                                                         contact.status === 'A recontacter' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                                            'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                                                            contact.status === 'Attente paiement' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
+                                                                contact.status === 'Attente retour' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                                                    'bg-slate-500/10 text-slate-400 border-slate-500/20'
                                                 }`}>
                                                 {contact.status}
                                             </span>
