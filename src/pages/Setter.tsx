@@ -1,11 +1,16 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Search, Filter, Phone, Mail, Eye, Target } from 'lucide-react';
+import { Search, Filter, Phone, Mail, Eye, Target, TrendingUp } from 'lucide-react';
 import { ContactCardModal } from '../components/ContactCardModal';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
     leads: Database['public']['Tables']['leads']['Row'] | null
+};
+
+type CommissionData = {
+    totalCommission: number;
+    monthCommission: number;
 };
 
 export function Setter() {
@@ -14,9 +19,11 @@ export function Setter() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [commissionData, setCommissionData] = useState<CommissionData>({ totalCommission: 0, monthCommission: 0 });
 
     useEffect(() => {
         fetchContacts();
+        fetchCommissions();
     }, []);
 
     async function fetchContacts() {
@@ -34,6 +41,38 @@ export function Setter() {
             console.error('Error fetching setter contacts:', error);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function fetchCommissions() {
+        try {
+            const { data, error } = await supabase
+                .from('clients')
+                .select('deal_amount, setter_commission_percentage, created_at')
+                .not('setter_commission_percentage', 'is', null)
+                .gt('setter_commission_percentage', 0);
+
+            if (error) throw error;
+
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            let total = 0;
+            let month = 0;
+
+            for (const client of data || []) {
+                const commission = (Number(client.deal_amount) * Number(client.setter_commission_percentage)) / 100;
+                total += commission;
+                const clientDate = new Date(client.created_at!);
+                if (clientDate.getMonth() === currentMonth && clientDate.getFullYear() === currentYear) {
+                    month += commission;
+                }
+            }
+
+            setCommissionData({ totalCommission: total, monthCommission: month });
+        } catch (error) {
+            console.error('Error fetching setter commissions:', error);
         }
     }
 
@@ -79,6 +118,28 @@ export function Setter() {
                 <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl">
                     <p className="text-slate-400 text-sm font-medium mb-1">Taux de Conversion</p>
                     <h3 className="text-2xl font-bold text-blue-400">{stats.rate.toFixed(1)}%</h3>
+                </div>
+            </div>
+
+            {/* Commission Card */}
+            <div className="bg-gradient-to-br from-emerald-900/40 to-slate-800 border border-emerald-500/20 p-6 rounded-2xl">
+                <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp size={18} className="text-emerald-400" />
+                    <h3 className="text-sm font-semibold text-emerald-400 uppercase tracking-wide">Mes Commissions</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <p className="text-xs text-slate-400 font-medium mb-1">Total gagné (tout temps)</p>
+                        <p className="text-3xl font-black text-white">
+                            {commissionData.totalCommission.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-400 font-medium mb-1">Ce mois-ci</p>
+                        <p className="text-3xl font-black text-emerald-400">
+                            {commissionData.monthCommission.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                        </p>
+                    </div>
                 </div>
             </div>
 
