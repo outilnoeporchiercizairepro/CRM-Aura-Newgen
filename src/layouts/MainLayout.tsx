@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     Users,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
+import { getUserRole, type UserRole } from '../lib/auth-helpers';
 
 interface Props {
     children: React.ReactNode;
@@ -20,16 +21,51 @@ interface Props {
 
 export function MainLayout({ children }: Props) {
     const [user, setUser] = useState<any>(null);
+    const [userRole, setUserRole] = useState<UserRole>(null);
+    const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data: { user } }) => {
             setUser(user);
+
+            if (user?.email) {
+                getUserRole().then(role => {
+                    setUserRole(role);
+                });
+            }
         });
     }, []);
+
+    // Redirect setters away from unauthorized pages
+    useEffect(() => {
+        if (userRole === 'setter') {
+            const unauthorizedPaths = ['/leads', '/contacts', '/clients', '/billing', '/expenses', '/'];
+            if (unauthorizedPaths.includes(location.pathname)) {
+                navigate('/setter');
+            }
+        }
+    }, [userRole, location.pathname, navigate]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
     };
+
+    // Define navigation items with role restrictions
+    const navItems = [
+        { to: '/', icon: <LayoutDashboard size={20} />, label: 'Tableau de bord', allowedRoles: ['admin'] },
+        { to: '/leads', icon: <UserPlus size={20} />, label: 'Leads', allowedRoles: ['admin'] },
+        { to: '/contacts', icon: <Users size={20} />, label: 'Contacts', allowedRoles: ['admin'] },
+        { to: '/clients', icon: <Briefcase size={20} />, label: 'Clients', allowedRoles: ['admin'] },
+        { to: '/billing', icon: <Wallet size={20} />, label: 'Facturation', allowedRoles: ['admin'] },
+        { to: '/expenses', icon: <TrendingDown size={20} />, label: 'Dépenses', allowedRoles: ['admin'] },
+        { to: '/setter', icon: <Target size={20} />, label: 'Setter (s-i)', allowedRoles: ['admin', 'setter'] },
+    ];
+
+    // Filter navigation items based on user role
+    const visibleNavItems = navItems.filter(item =>
+        !userRole || item.allowedRoles.includes(userRole)
+    );
 
     const userInitial = user?.email?.[0].toUpperCase() || 'U';
     return (
@@ -43,13 +79,14 @@ export function MainLayout({ children }: Props) {
                 </div>
 
                 <nav className="flex-1 px-4 space-y-2">
-                    <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Tableau de bord" />
-                    <NavItem to="/leads" icon={<UserPlus size={20} />} label="Leads" />
-                    <NavItem to="/contacts" icon={<Users size={20} />} label="Contacts" />
-                    <NavItem to="/clients" icon={<Briefcase size={20} />} label="Clients" />
-                    <NavItem to="/billing" icon={<Wallet size={20} />} label="Facturation" />
-                    <NavItem to="/expenses" icon={<TrendingDown size={20} />} label="Dépenses" />
-                    <NavItem to="/setter" icon={<Target size={20} />} label="Setter (s-i)" />
+                    {visibleNavItems.map(item => (
+                        <NavItem
+                            key={item.to}
+                            to={item.to}
+                            icon={item.icon}
+                            label={item.label}
+                        />
+                    ))}
                 </nav>
 
                 <div className="p-4 border-t border-slate-800 space-y-2">
@@ -74,7 +111,9 @@ export function MainLayout({ children }: Props) {
                     <div className="flex items-center gap-4">
                         <div className="flex flex-col items-end">
                             <span className="text-xs font-bold text-white uppercase tracking-tight">{user?.email?.split('@')[0]}</span>
-                            <span className="text-[10px] text-slate-500 font-medium">{user?.email === 'admin@aura-academie.com' ? 'ADMIN' : 'MEMBRE'}</span>
+                            <span className="text-[10px] text-slate-500 font-medium">
+                                {userRole === 'admin' ? 'ADMIN' : userRole === 'setter' ? 'SETTER' : 'MEMBRE'}
+                            </span>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">
                             {userInitial}
