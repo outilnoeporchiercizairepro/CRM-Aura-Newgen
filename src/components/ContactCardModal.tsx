@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { X, Save, Trash2, Loader2, Link as LinkIcon, Info, FileText, StickyNote } from 'lucide-react';
+import { X, Save, Trash2, Loader2, Link as LinkIcon, Info, FileText, StickyNote, Trophy } from 'lucide-react';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
     leads: Database['public']['Tables']['leads']['Row'] | null
 };
+
+type ClientData = {
+    deal_amount: number;
+    payment_method: Database['public']['Enums']['payment_method_enum'] | null;
+    closed_by: Database['public']['Enums']['team_member_enum'] | null;
+} | null;
 
 type JobStatus = Database['public']['Enums']['job_status_enum'];
 
@@ -22,6 +28,7 @@ const JOB_STATUSES: JobStatus[] = ['Entrepreneur', 'Demandeur d\'emploi', 'Etudi
 export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly = false }: Props) {
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'info' | 'presentation' | 'notes'>('info');
+    const [clientData, setClientData] = useState<ClientData>(null);
     const [formData, setFormData] = useState({
         nom: contact.nom,
         email: contact.email || '',
@@ -45,6 +52,19 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
             notes: contact.notes || '',
             source: contact.source || ''
         });
+
+        if (contact.status === 'Closé') {
+            supabase
+                .from('clients')
+                .select('deal_amount, payment_method, closed_by')
+                .eq('contact_id', contact.id)
+                .maybeSingle()
+                .then(({ data }) => {
+                    setClientData(data);
+                });
+        } else {
+            setClientData(null);
+        }
     }, [contact]);
 
     if (!isOpen) return null;
@@ -242,6 +262,35 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                                     />
                                 </div>
                             </div>
+
+                            {clientData && (
+                                <div className="bg-emerald-900/15 border border-emerald-500/25 rounded-xl p-4">
+                                    <div className="flex items-center gap-2 mb-3 text-emerald-400">
+                                        <Trophy size={16} />
+                                        <h3 className="font-semibold text-sm uppercase tracking-wide">Deal Closé</h3>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-2xl font-black text-white">
+                                                {clientData.deal_amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                                            </p>
+                                            {clientData.closed_by && (
+                                                <p className="text-xs text-slate-400 mt-0.5">Closé par <span className="text-slate-300">{clientData.closed_by}</span></p>
+                                            )}
+                                        </div>
+                                        <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${
+                                            clientData.payment_method === 'One shot'
+                                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                        }`}>
+                                            {clientData.payment_method === 'One shot'
+                                                ? 'One Shot'
+                                                : `Paiement en ${clientData.payment_method}`
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
