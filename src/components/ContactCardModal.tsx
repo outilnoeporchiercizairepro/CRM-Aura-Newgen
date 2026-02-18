@@ -11,6 +11,7 @@ type ClientData = {
     deal_amount: number;
     payment_method: Database['public']['Enums']['payment_method_enum'] | null;
     closed_by: Database['public']['Enums']['team_member_enum'] | null;
+    setter_commission_percentage: number | null;
 } | null;
 
 type JobStatus = Database['public']['Enums']['job_status_enum'];
@@ -56,7 +57,7 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
         if (contact.status === 'Closé') {
             supabase
                 .from('clients')
-                .select('deal_amount, payment_method, closed_by')
+                .select('deal_amount, payment_method, closed_by, setter_commission_percentage')
                 .eq('contact_id', contact.id)
                 .maybeSingle()
                 .then(({ data }) => {
@@ -289,6 +290,18 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                                             }
                                         </span>
                                     </div>
+
+                                    {clientData.setter_commission_percentage != null && clientData.setter_commission_percentage > 0 && (
+                                        <div className="mt-3 pt-3 border-t border-emerald-500/15 flex items-center justify-between">
+                                            <span className="text-xs text-slate-400 uppercase font-semibold tracking-wide">Commission setter</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-slate-500">{clientData.setter_commission_percentage}%</span>
+                                                <span className="text-sm font-black text-emerald-400">
+                                                    {(clientData.deal_amount * clientData.setter_commission_percentage / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
