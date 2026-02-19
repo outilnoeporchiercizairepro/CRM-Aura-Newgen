@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
 import { X, Loader2, Save, DollarSign, Calendar, Tag, Trash2 } from 'lucide-react';
@@ -23,6 +23,20 @@ export function ExpenseModal({ expense, isOpen, onClose, onUpdate }: Props) {
         paid_by: (expense?.paid_by || 'Noé') as Database['public']['Enums']['team_member_enum'],
         is_deducted: expense?.is_deducted || false
     });
+
+    useEffect(() => {
+        if (isOpen) {
+            setFormData({
+                name: expense?.name || '',
+                amount: expense?.amount?.toString() || '',
+                type: (expense?.type || 'one-shot') as 'one-shot' | 'monthly',
+                date: expense?.date || new Date().toISOString().split('T')[0],
+                category: expense?.category || '',
+                paid_by: (expense?.paid_by || 'Noé') as Database['public']['Enums']['team_member_enum'],
+                is_deducted: expense?.is_deducted || false
+            });
+        }
+    }, [isOpen, expense]);
 
     if (!isOpen) return null;
 
