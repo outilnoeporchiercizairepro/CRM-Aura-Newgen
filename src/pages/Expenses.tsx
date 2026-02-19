@@ -182,7 +182,7 @@ export function Expenses() {
     });
 
     const totalFiltered = filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
-    const deductedThisMonth = filteredExpenses.filter(exp => isDeductedThisMonth(exp.id));
+    const deductedThisMonth = filteredExpenses.filter(exp => exp.type === 'monthly' && isDeductedThisMonth(exp.id));
     const totalDeductedThisMonth = deductedThisMonth.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
     if (loading) {
@@ -344,36 +344,42 @@ export function Expenses() {
                                             </p>
                                         </td>
                                         <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button
-                                                    onClick={(e) => handleToggleDeduction(e, exp)}
-                                                    disabled={isProcessing}
-                                                    title={deducted ? 'Annuler la déduction du mois' : 'Marquer comme déduit ce mois'}
-                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${deducted
-                                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                                                        : 'bg-slate-700/50 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'
-                                                        } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                                                >
-                                                    {isProcessing ? (
-                                                        <Clock size={12} className="animate-spin" />
-                                                    ) : (
-                                                        <CheckCircle2 size={12} />
-                                                    )}
-                                                    {deducted ? 'Déduit' : 'Déduire'}
-                                                </button>
-                                                {historyCount > 0 && (
+                                            {exp.type === 'monthly' ? (
+                                                <div className="flex items-center justify-center gap-2">
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); setHistoryExpense(exp); }}
-                                                        title="Voir l'historique des déductions"
-                                                        className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors relative"
+                                                        onClick={(e) => handleToggleDeduction(e, exp)}
+                                                        disabled={isProcessing}
+                                                        title={deducted ? 'Annuler la déduction du mois' : 'Marquer comme déduit ce mois'}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${deducted
+                                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                                                            : 'bg-slate-700/50 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'
+                                                            } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                                     >
-                                                        <History size={14} />
-                                                        <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[8px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                                                            {historyCount}
-                                                        </span>
+                                                        {isProcessing ? (
+                                                            <Clock size={12} className="animate-spin" />
+                                                        ) : (
+                                                            <CheckCircle2 size={12} />
+                                                        )}
+                                                        {deducted ? 'Déduit' : 'Déduire'}
                                                     </button>
-                                                )}
-                                            </div>
+                                                    {historyCount > 0 && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setHistoryExpense(exp); }}
+                                                            title="Voir l'historique des déductions"
+                                                            className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors relative"
+                                                        >
+                                                            <History size={14} />
+                                                            <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[8px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                                                                {historyCount}
+                                                            </span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="flex justify-center">
+                                                    <span className="text-[10px] text-slate-600 italic">—</span>
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
                                             <button
