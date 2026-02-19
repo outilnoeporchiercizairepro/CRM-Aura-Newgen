@@ -108,6 +108,41 @@ export type Database = {
           },
         ]
       }
+      expense_deductions: {
+        Row: {
+          id: string
+          expense_id: string
+          deducted_month: number
+          deducted_year: number
+          deducted_at: string
+          deducted_by: string | null
+        }
+        Insert: {
+          id?: string
+          expense_id: string
+          deducted_month: number
+          deducted_year: number
+          deducted_at?: string
+          deducted_by?: string | null
+        }
+        Update: {
+          id?: string
+          expense_id?: string
+          deducted_month?: number
+          deducted_year?: number
+          deducted_at?: string
+          deducted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_deductions_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       expenses: {
         Row: {
           amount: number
