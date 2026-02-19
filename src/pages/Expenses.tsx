@@ -117,6 +117,10 @@ export function Expenses() {
         );
     }
 
+    function isOneShotDeducted(expenseId: string) {
+        return deductions.some(d => d.expense_id === expenseId);
+    }
+
     function getDeductionsForExpense(expenseId: string) {
         return deductions.filter(d => d.expense_id === expenseId);
     }
@@ -125,27 +129,51 @@ export function Expenses() {
         e.stopPropagation();
         setDeducting(expense.id);
         try {
-            const alreadyDeducted = isDeductedThisMonth(expense.id);
-            if (alreadyDeducted) {
-                const existing = deductions.find(
-                    d => d.expense_id === expense.id && d.deducted_month === currentMonth && d.deducted_year === currentYear
-                );
-                if (existing) {
+            if (expense.type === 'one-shot') {
+                const alreadyDeducted = isOneShotDeducted(expense.id);
+                if (alreadyDeducted) {
+                    const existing = deductions.find(d => d.expense_id === expense.id);
+                    if (existing) {
+                        const { error } = await supabase
+                            .from('expense_deductions')
+                            .delete()
+                            .eq('id', existing.id);
+                        if (error) throw error;
+                    }
+                } else {
+                    const expenseDate = new Date(expense.date);
                     const { error } = await supabase
                         .from('expense_deductions')
-                        .delete()
-                        .eq('id', existing.id);
+                        .insert([{
+                            expense_id: expense.id,
+                            deducted_month: expenseDate.getMonth() + 1,
+                            deducted_year: expenseDate.getFullYear()
+                        }]);
                     if (error) throw error;
                 }
             } else {
-                const { error } = await supabase
-                    .from('expense_deductions')
-                    .insert([{
-                        expense_id: expense.id,
-                        deducted_month: currentMonth,
-                        deducted_year: currentYear
-                    }]);
-                if (error) throw error;
+                const alreadyDeducted = isDeductedThisMonth(expense.id);
+                if (alreadyDeducted) {
+                    const existing = deductions.find(
+                        d => d.expense_id === expense.id && d.deducted_month === currentMonth && d.deducted_year === currentYear
+                    );
+                    if (existing) {
+                        const { error } = await supabase
+                            .from('expense_deductions')
+                            .delete()
+                            .eq('id', existing.id);
+                        if (error) throw error;
+                    }
+                } else {
+                    const { error } = await supabase
+                        .from('expense_deductions')
+                        .insert([{
+                            expense_id: expense.id,
+                            deducted_month: currentMonth,
+                            deducted_year: currentYear
+                        }]);
+                    if (error) throw error;
+                }
             }
             await fetchAll();
         } catch (error) {
@@ -182,7 +210,10 @@ export function Expenses() {
     });
 
     const totalFiltered = filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
-    const deductedThisMonth = filteredExpenses.filter(exp => exp.type === 'monthly' && isDeductedThisMonth(exp.id));
+    const deductedThisMonth = filteredExpenses.filter(exp =>
+        (exp.type === 'monthly' && isDeductedThisMonth(exp.id)) ||
+        (exp.type === 'one-shot' && isOneShotDeducted(exp.id))
+    );
     const totalDeductedThisMonth = deductedThisMonth.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
     if (loading) {
@@ -294,7 +325,7 @@ export function Expenses() {
                             </tr>
                         ) : (
                             filteredExpenses.map(exp => {
-                                const deducted = isDeductedThisMonth(exp.id);
+                                const deducted = exp.type === 'monthly' ? isDeductedThisMonth(exp.id) : isOneShotDeducted(exp.id);
                                 const historyCount = getDeductionsForExpense(exp.id).length;
                                 const isProcessing = deducting === exp.id;
                                 return (
@@ -376,8 +407,28 @@ export function Expenses() {
                                                     )}
                                                 </div>
                                             ) : (
-                                                <div className="flex justify-center">
-                                                    <span className="text-[10px] text-slate-600 italic">—</span>
+                                                <div className="flex items-center justify-center">
+                                                    {(() => {
+                                                        const oneShotDeducted = isOneShotDeducted(exp.id);
+                                                        return (
+                                                            <button
+                                                                onClick={(e) => handleToggleDeduction(e, exp)}
+                                                                disabled={isProcessing}
+                                                                title={oneShotDeducted ? 'Annuler la déduction' : 'Marquer comme déduit'}
+                                                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${oneShotDeducted
+                                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                                                                    : 'bg-slate-700/50 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'
+                                                                    } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                            >
+                                                                {isProcessing ? (
+                                                                    <Clock size={12} className="animate-spin" />
+                                                                ) : (
+                                                                    <CheckCircle2 size={12} />
+                                                                )}
+                                                                {oneShotDeducted ? 'Déduit' : 'Déduire'}
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </div>
                                             )}
                                         </td>
