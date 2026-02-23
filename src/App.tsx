@@ -137,7 +137,11 @@ function App() {
                       <Setter />
                     </ProtectedRoute>
                   } />
-                  <Route path="/setter-linkedin" element={<SetterLinkedin />} />
+                  <Route path="/setter-linkedin" element={
+                    <ProtectedRoute session={session} loading={loading} role={role} allowedRoles={['admin', 'setter_linkedin']}>
+                      <SetterLinkedin />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/settings" element={
                     <ProtectedRoute session={session} loading={loading} role={role} allowedRoles={['admin']}>
                       <Settings />
