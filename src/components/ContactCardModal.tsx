@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { X, Save, Trash2, Loader2, Link as LinkIcon, Info, FileText, StickyNote, Trophy } from 'lucide-react';
+import { X, Save, Trash2, Loader2, Link as LinkIcon, Info, FileText, StickyNote, Trophy, GitBranch } from 'lucide-react';
+import { PipelineTab } from './PipelineTab';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
     leads: Database['public']['Tables']['leads']['Row'] | null
@@ -28,7 +29,8 @@ const JOB_STATUSES: JobStatus[] = ['Entrepreneur', 'Demandeur d\'emploi', 'Etudi
 
 export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly = false }: Props) {
     const [loading, setLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'info' | 'presentation' | 'notes'>('info');
+    const [activeTab, setActiveTab] = useState<'info' | 'presentation' | 'notes' | 'pipeline'>('info');
+    const [currentContact, setCurrentContact] = useState(contact);
     const [clientData, setClientData] = useState<ClientData>(null);
     const [formData, setFormData] = useState({
         nom: contact.nom,
@@ -40,6 +42,10 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
         notes: contact.notes || '',
         source: contact.source || ''
     });
+
+    useEffect(() => {
+        setCurrentContact(contact);
+    }, [contact]);
 
     // Reset form when contact changes
     useEffect(() => {
@@ -166,6 +172,16 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                         >
                             <StickyNote size={16} />
                             Notes Internes
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('pipeline')}
+                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative ${activeTab === 'pipeline'
+                                ? 'text-blue-400 border-b-2 border-blue-400'
+                                : 'text-slate-400 hover:text-slate-300'
+                                }`}
+                        >
+                            <GitBranch size={16} />
+                            Pipeline
                         </button>
                     </div>
                 </div>
@@ -337,7 +353,7 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                         <div className="space-y-4">
                             <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
                                 <p className="text-xs text-slate-400 mb-3">
-                                    📝 Notes privées pour le suivi interne : rendez-vous, relances, observations, etc.
+                                    Notes privées pour le suivi interne : rendez-vous, relances, observations, etc.
                                 </p>
                             </div>
                             <div>
@@ -348,7 +364,7 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                     disabled={readOnly}
                                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white text-sm focus:border-blue-500 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed"
-                                    placeholder="Notes de rendez-vous, suivi, etc...\n\nCes notes sont privées et ne seront pas visibles par le contact."
+                                    placeholder="Notes de rendez-vous, suivi, etc..."
                                 />
                                 <p className="text-xs text-slate-500 mt-2">
                                     {formData.notes.length} caractères
@@ -356,10 +372,30 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                             </div>
                         </div>
                     )}
+
+                    {/* Tab: Pipeline */}
+                    {activeTab === 'pipeline' && (
+                        <div className="-mx-6 -mt-6">
+                            <PipelineTab
+                                contact={currentContact}
+                                onUpdate={() => {
+                                    supabase
+                                        .from('contacts')
+                                        .select('*')
+                                        .eq('id', contact.id)
+                                        .maybeSingle()
+                                        .then(({ data }) => {
+                                            if (data) setCurrentContact({ ...currentContact, ...data });
+                                        });
+                                    onUpdate();
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer Actions */}
-                {!readOnly && (
+                {!readOnly && activeTab !== 'pipeline' && (
                     <div className="p-6 border-t border-slate-800 flex justify-between items-center bg-slate-900/50">
                         <button
                             onClick={handleDelete}
