@@ -48,7 +48,7 @@ export function Setter() {
         try {
             const { data, error } = await supabase
                 .from('clients')
-                .select('deal_amount, setter_commission_percentage, created_at')
+                .select('deal_amount, setter_commission_percentage, created_at, contacts(source)')
                 .not('setter_commission_percentage', 'is', null)
                 .gt('setter_commission_percentage', 0);
 
@@ -62,6 +62,8 @@ export function Setter() {
             let month = 0;
 
             for (const client of data || []) {
+                const source = (client.contacts as any)?.source;
+                if (source !== 's-i') continue;
                 const commission = (Number(client.deal_amount) * Number(client.setter_commission_percentage)) / 100;
                 total += commission;
                 const clientDate = new Date(client.created_at!);
