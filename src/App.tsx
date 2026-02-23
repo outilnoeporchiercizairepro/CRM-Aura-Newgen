@@ -10,6 +10,7 @@ import { Billing } from './pages/Billing';
 import { Expenses } from './pages/Expenses';
 import { Login } from './pages/Login';
 import { Setter } from './pages/Setter';
+import { SetterLinkedin } from './pages/SetterLinkedin';
 import { Loader2 } from 'lucide-react';
 
 const Settings = () => <div>Paramètres (Construction)</div>;
@@ -68,6 +69,7 @@ function App() {
                   <Route path="/billing" element={<Billing />} />
                   <Route path="/expenses" element={<Expenses />} />
                   <Route path="/setter" element={<Setter />} />
+                  <Route path="/setter-linkedin" element={<SetterLinkedin />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
