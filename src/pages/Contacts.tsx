@@ -22,6 +22,7 @@ export function Contacts() {
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [contactToConvert, setContactToConvert] = useState<Contact | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [todayOnly, setTodayOnly] = useState(false);
 
     useEffect(() => {
         fetchContacts();
@@ -58,14 +59,17 @@ export function Contacts() {
         }
     }
 
+    const todayStr = new Date().toISOString().split('T')[0];
+
     const filteredContacts = useMemo(() => {
         return contacts.filter(contact => {
             const matchesSearch = contact.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 contact.email?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
-            return matchesSearch && matchesStatus;
+            const matchesToday = !todayOnly || contact.first_closing_date === todayStr;
+            return matchesSearch && matchesStatus && matchesToday;
         });
-    }, [contacts, searchTerm, statusFilter]);
+    }, [contacts, searchTerm, statusFilter, todayOnly, todayStr]);
 
     const handleStatusUpdate = (contactId: string, newStatus: string) => {
         setContacts(prev => prev.map(c =>
@@ -305,6 +309,23 @@ export function Contacts() {
                         <option value="Pas budget" className="bg-slate-800">Pas budget</option>
                     </select>
                 </div>
+
+                <button
+                    onClick={() => setTodayOnly(prev => !prev)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                        todayOnly
+                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20'
+                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                    }`}
+                >
+                    <Calendar size={16} />
+                    Calls du jour
+                    {todayOnly && (
+                        <span className="bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">
+                            {filteredContacts.length}
+                        </span>
+                    )}
+                </button>
             </div>
 
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
