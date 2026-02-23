@@ -20,11 +20,12 @@ import { getUserRole, type UserRole } from '../lib/auth-helpers';
 
 interface Props {
     children: React.ReactNode;
+    role?: UserRole;
 }
 
-export function MainLayout({ children }: Props) {
+export function MainLayout({ children, role: roleProp }: Props) {
     const [user, setUser] = useState<any>(null);
-    const [userRole, setUserRole] = useState<UserRole>(null);
+    const [userRole, setUserRole] = useState<UserRole>(roleProp ?? null);
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
@@ -33,19 +34,30 @@ export function MainLayout({ children }: Props) {
         supabase.auth.getUser().then(({ data: { user } }) => {
             setUser(user);
 
-            if (user?.email) {
+            if (user?.email && !roleProp) {
                 getUserRole().then(role => {
                     setUserRole(role);
                 });
             }
         });
-    }, []);
+    }, [roleProp]);
+
+    useEffect(() => {
+        if (roleProp !== undefined) {
+            setUserRole(roleProp);
+        }
+    }, [roleProp]);
 
     useEffect(() => {
         if (userRole === 'setter') {
             const unauthorizedPaths = ['/leads', '/contacts', '/clients', '/billing', '/expenses', '/'];
             if (unauthorizedPaths.includes(location.pathname)) {
                 navigate('/setter');
+            }
+        }
+        if (userRole === 'setter_linkedin') {
+            if (location.pathname !== '/setter-linkedin') {
+                navigate('/setter-linkedin');
             }
         }
     }, [userRole, location.pathname, navigate]);
@@ -62,7 +74,7 @@ export function MainLayout({ children }: Props) {
         { to: '/billing', icon: <Wallet size={20} />, label: 'Facturation', allowedRoles: ['admin'] },
         { to: '/expenses', icon: <TrendingDown size={20} />, label: 'Dépenses', allowedRoles: ['admin'] },
         { to: '/setter', icon: <Target size={20} />, label: 'Setter (s-i)', allowedRoles: ['admin', 'setter'] },
-        { to: '/setter-linkedin', icon: <Linkedin size={20} />, label: 'Setter LinkedIn', allowedRoles: ['admin', 'setter'] },
+        { to: '/setter-linkedin', icon: <Linkedin size={20} />, label: 'Setter LinkedIn', allowedRoles: ['admin', 'setter', 'setter_linkedin'] },
     ];
 
     const visibleNavItems = navItems.filter(item =>
@@ -106,7 +118,9 @@ export function MainLayout({ children }: Props) {
                 </nav>
 
                 <div className={`p-2 border-t border-slate-800 space-y-1`}>
-                    <NavItem to="/settings" icon={<Settings size={20} />} label="Paramètres" collapsed={collapsed} />
+                    {userRole !== 'setter_linkedin' && (
+                        <NavItem to="/settings" icon={<Settings size={20} />} label="Paramètres" collapsed={collapsed} />
+                    )}
                     <button
                         onClick={handleLogout}
                         title={collapsed ? 'Déconnexion' : undefined}
@@ -128,7 +142,7 @@ export function MainLayout({ children }: Props) {
                         <div className="flex flex-col items-end">
                             <span className="text-xs font-bold text-white uppercase tracking-tight">{user?.email?.split('@')[0]}</span>
                             <span className="text-[10px] text-slate-500 font-medium">
-                                {userRole === 'admin' ? 'ADMIN' : userRole === 'setter' ? 'SETTER' : 'MEMBRE'}
+                                {userRole === 'admin' ? 'ADMIN' : userRole === 'setter' ? 'SETTER' : userRole === 'setter_linkedin' ? 'SETTER LINKEDIN' : 'MEMBRE'}
                             </span>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">
