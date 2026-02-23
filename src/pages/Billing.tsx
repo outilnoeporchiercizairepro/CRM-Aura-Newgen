@@ -288,15 +288,15 @@ export function Billing() {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[1000px]">
+                    <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                             <tr className="text-xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-700">
-                                <th className="px-4 py-4">Client / Mensualité</th>
-                                <th className="px-4 py-4 text-center">Encaissé par</th>
-                                <th className="px-4 py-4">Plateforme / Frais</th>
-                                <th className="px-4 py-4">Setter (Upfront)</th>
-                                <th className="px-4 py-4">Virements Associés (70%)</th>
-                                <th className="px-4 py-4 text-right">Action</th>
+                                <th className="px-3 py-3">Client / Mensualité</th>
+                                <th className="px-3 py-3 text-center">Encaissé par</th>
+                                <th className="px-3 py-3">Plateforme / Frais</th>
+                                <th className="px-3 py-3">Setter</th>
+                                <th className="px-3 py-3">Virements (70%)</th>
+                                <th className="px-3 py-3 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/50">
@@ -321,56 +321,56 @@ export function Billing() {
 
                                     return (
                                         <tr key={inst.id} className="hover:bg-slate-750 transition-colors group">
-                                            <td className="px-4 py-4">
-                                                <p className="text-sm font-bold text-white uppercase tracking-tight">{inst.clients?.contacts?.nom}</p>
-                                                <div className="flex items-center gap-2 mt-1">
+                                            <td className="px-3 py-3">
+                                                <p className="text-sm font-bold text-white uppercase tracking-tight whitespace-nowrap">{inst.clients?.contacts?.nom}</p>
+                                                <div className="flex items-center gap-1 mt-1 flex-wrap">
                                                     <p className={`text-xs font-bold ${inst.status === 'En transit' ? 'text-indigo-400' : 'text-slate-500'}`}>
-                                                        {gross.toLocaleString('fr-FR')} € {inst.status === 'En transit' ? 'En transit' : 'Reçu'}
+                                                        {gross.toLocaleString('fr-FR')} €
                                                     </p>
-                                                    <span className="text-[10px] px-2 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-400">
-                                                        {new Date(inst.due_date).toLocaleDateString('fr-FR')}
+                                                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-400 whitespace-nowrap">
+                                                        {new Date(inst.due_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4 text-center">
-                                                <span className={`text-[10px] font-black px-3 py-1 rounded-lg border ${inst.clients?.closed_by === 'Noé' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                            <td className="px-3 py-3 text-center">
+                                                <span className={`text-[10px] font-black px-2 py-1 rounded-lg border whitespace-nowrap ${inst.clients?.closed_by === 'Noé' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                                                     inst.clients?.closed_by === 'Baptiste' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
                                                         'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                                     }`}>
                                                     {inst.clients?.closed_by || 'Non défini'}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <div className="space-y-1">
+                                            <td className="px-3 py-3">
+                                                <div className="space-y-0.5">
                                                     <p className="text-xs font-bold text-slate-300 uppercase">{inst.clients?.billing_platform || 'Mollie'}</p>
-                                                    <p className="text-xs text-rose-400 font-bold">-{platformFee.toFixed(2)} € Frais</p>
+                                                    <p className="text-xs text-rose-400 font-bold">-{platformFee.toFixed(2)} €</p>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4">
+                                            <td className="px-3 py-3">
                                                 {setterFee > 0 ? (
-                                                    <div className="space-y-1">
-                                                        <p className="text-sm font-bold text-amber-400 uppercase">OUI (Encaissé)</p>
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-xs font-bold text-amber-400 uppercase">OUI</p>
                                                         <p className="text-xs text-amber-500/70 font-bold">-{setterFee.toFixed(2)} €</p>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs text-slate-600 font-bold">NON / DÉJÀ RÉGLÉ</span>
+                                                    <span className="text-xs text-slate-600 font-bold">NON</span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex flex-wrap gap-2">
+                                            <td className="px-3 py-3">
+                                                <div className="flex flex-wrap gap-1.5">
                                                     {Object.entries(distribution).map(([member, percentage]) => {
                                                         const amount = (netToDistribute * (percentage as number)) / 100;
                                                         if (amount <= 0) return null;
                                                         return (
-                                                            <div key={member} className="flex flex-col bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700 group-hover:border-slate-600 transition-colors min-w-[70px]">
-                                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wide mb-0.5">{member}</span>
-                                                                <span className="text-sm font-black text-emerald-400">{amount.toFixed(2)} €</span>
+                                                            <div key={member} className="flex flex-col bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-700 group-hover:border-slate-600 transition-colors min-w-[60px]">
+                                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wide mb-0.5">{member}</span>
+                                                                <span className="text-xs font-black text-emerald-400">{amount.toFixed(2)} €</span>
                                                             </div>
                                                         );
                                                     })}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4 text-right">
+                                            <td className="px-3 py-3 text-right">
                                                 <button
                                                     onClick={() => toggleDispatch(inst)}
                                                     className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black transition-all border ${inst.is_dispatched

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Search, Filter, Phone, Mail, Eye, Target, TrendingUp } from 'lucide-react';
+import { Search, Filter, Eye, Target, TrendingUp } from 'lucide-react';
 import { ContactCardModal } from '../components/ContactCardModal';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
@@ -177,15 +177,15 @@ export function Setter() {
 
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
+                    <table className="w-full text-left text-sm text-slate-400 min-w-[600px]">
                         <thead className="bg-slate-900/50 text-xs uppercase font-medium text-slate-300">
                             <tr>
-                                <th className="px-6 py-4">Nom</th>
-                                <th className="px-6 py-4">Email</th>
-                                <th className="px-6 py-4">Téléphone</th>
-                                <th className="px-6 py-4">Source</th>
-                                <th className="px-6 py-4">Statut Pipeline</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
+                                <th className="px-4 py-3">Nom</th>
+                                <th className="px-4 py-3">Email</th>
+                                <th className="px-4 py-3">Téléphone</th>
+                                <th className="px-4 py-3">Source</th>
+                                <th className="px-4 py-3">Statut Pipeline</th>
+                                <th className="px-4 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700">
@@ -200,30 +200,26 @@ export function Setter() {
                             ) : (
                                 filteredContacts.map((contact) => (
                                     <tr key={contact.id} className="hover:bg-slate-700/50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-white uppercase tracking-tight">
+                                        <td className="px-4 py-3 font-bold text-white uppercase tracking-tight whitespace-nowrap">
                                             {contact.nom}
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <Mail size={14} className="text-slate-500" />
+                                        <td className="px-4 py-3">
+                                            <span className="text-slate-300 text-xs truncate max-w-[150px] block" title={contact.email || ''}>
                                                 {contact.email || '-'}
-                                            </div>
+                                            </span>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <Phone size={14} className="text-slate-500" />
-                                                {contact.phone || '-'}
-                                            </div>
+                                        <td className="px-4 py-3 text-slate-300 text-xs whitespace-nowrap">
+                                            {contact.phone || '-'}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <span
-                                                className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 max-w-[100px] truncate block"
+                                                className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 max-w-[80px] truncate block"
                                                 title={contact.source || 's-i'}
                                             >
                                                 {contact.source || 's-i'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-xs font-medium">
+                                        <td className="px-4 py-3 text-xs font-medium">
                                             <span className={`px-3 py-1 rounded-full border ${contact.status === 'Closé' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                                 contact.status === 'Call planifié' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                                                     contact.status === 'Pas budget' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
@@ -235,7 +231,7 @@ export function Setter() {
                                                 {contact.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => setSelectedContact(contact)}

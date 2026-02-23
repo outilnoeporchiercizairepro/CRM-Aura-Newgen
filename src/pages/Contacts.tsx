@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Search, Filter, Phone, Mail, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, AlertCircle, Wallet, PieChart as PieChartIcon, BarChart3 as BarChartIcon, GitBranch } from 'lucide-react';
+import { Search, Filter, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, AlertCircle, Wallet, PieChart as PieChartIcon, BarChart3 as BarChartIcon, GitBranch } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { StatusSelect } from '../components/StatusSelect';
 import { NewContactModal } from '../components/NewContactModal';
@@ -344,17 +344,17 @@ export function Contacts() {
 
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
+                    <table className="w-full text-left text-sm text-slate-400 min-w-[900px]">
                         <thead className="bg-slate-900/50 text-xs uppercase font-medium text-slate-300">
                             <tr>
-                                <th className="px-6 py-4">Nom</th>
-                                <th className="px-6 py-4">Email</th>
-                                <th className="px-6 py-4">Téléphone</th>
-                                <th className="px-6 py-4">Statut Contact</th>
-                                <th className="px-6 py-4">Pipeline</th>
-                                <th className="px-6 py-4">Source</th>
-                                <th className="px-6 py-4">Date du 1er closing</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
+                                <th className="px-3 py-3">Nom</th>
+                                <th className="px-3 py-3">Email</th>
+                                <th className="px-3 py-3">Téléphone</th>
+                                <th className="px-3 py-3">Statut Contact</th>
+                                <th className="px-3 py-3">Pipeline</th>
+                                <th className="px-3 py-3">Source</th>
+                                <th className="px-3 py-3">1er closing</th>
+                                <th className="px-3 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700">
@@ -369,68 +369,61 @@ export function Contacts() {
                             ) : (
                                 filteredContacts.map((contact) => (
                                     <tr key={contact.id} className="hover:bg-slate-700/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-white">
+                                        <td className="px-3 py-3 font-medium text-white whitespace-nowrap">
                                             {contact.nom}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-3">
                                             {contact.email ? (
-                                                <div className="flex items-center gap-2 text-slate-300">
-                                                    <Mail size={14} className="text-slate-500" />
+                                                <span className="text-slate-300 text-xs truncate max-w-[140px] block" title={contact.email}>
                                                     {contact.email}
-                                                </div>
+                                                </span>
                                             ) : (
                                                 <span className="text-slate-600 italic">-</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-3">
                                             {contact.phone ? (
-                                                <div className="flex items-center gap-2 text-slate-300">
-                                                    <Phone size={14} className="text-slate-500" />
-                                                    {contact.phone}
-                                                </div>
+                                                <span className="text-slate-300 text-xs whitespace-nowrap">{contact.phone}</span>
                                             ) : (
                                                 <span className="text-slate-600 italic">-</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-3">
                                             <StatusSelect
                                                 currentStatus={contact.status}
                                                 contactId={contact.id}
                                                 onStatusChange={(newStatus) => handleStatusUpdate(contact.id, newStatus)}
                                             />
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-3">
                                             {contact.pipeline_status ? (
-                                                <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold ${PIPELINE_BADGE[contact.pipeline_status as PipelineStatus]?.bg ?? 'bg-slate-700'} ${PIPELINE_BADGE[contact.pipeline_status as PipelineStatus]?.text ?? 'text-slate-300'}`}>
+                                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold whitespace-nowrap ${PIPELINE_BADGE[contact.pipeline_status as PipelineStatus]?.bg ?? 'bg-slate-700'} ${PIPELINE_BADGE[contact.pipeline_status as PipelineStatus]?.text ?? 'text-slate-300'}`}>
                                                     <GitBranch size={9} />
                                                     {PIPELINE_BADGE[contact.pipeline_status as PipelineStatus]?.label ?? contact.pipeline_status}
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold bg-slate-700 text-slate-400">
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-slate-700 text-slate-400 whitespace-nowrap">
                                                     <GitBranch size={9} />
                                                     Prospect
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-3">
                                             <span
-                                                className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 max-w-[120px] truncate block"
+                                                className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 max-w-[90px] truncate block"
                                                 title={contact.source || 'Lien direct'}
                                             >
                                                 {contact.source || 'Lien direct'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-400">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar size={14} className="text-slate-600" />
-                                                {contact.first_closing_date ? new Date(contact.first_closing_date).toLocaleDateString('fr-FR', {
-                                                    day: '2-digit',
-                                                    month: '2-digit',
-                                                    year: 'numeric'
-                                                }) : <span className="text-slate-600 italic text-xs">Non définie</span>}
-                                            </div>
+                                        <td className="px-3 py-3 text-slate-400 whitespace-nowrap">
+                                            {contact.first_closing_date ? new Date(contact.first_closing_date).toLocaleDateString('fr-FR', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                year: '2-digit'
+                                            }) : <span className="text-slate-600 italic text-xs">-</span>}
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-3 py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => setContactToConvert(contact)}

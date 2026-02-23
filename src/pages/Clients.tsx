@@ -295,15 +295,15 @@ export function Clients() {
 
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
+                    <table className="w-full text-left text-sm text-slate-400 min-w-[700px]">
                         <thead className="bg-slate-900/50 text-xs uppercase font-bold text-slate-300">
                             <tr>
-                                <th className="px-6 py-4">Client</th>
-                                <th className="px-6 py-4">Deals & Paiements</th>
-                                <th className="px-6 py-4">Prochaine Échéance</th>
-                                <th className="px-6 py-4 text-center">Plateforme</th>
-                                <th className="px-6 py-4">Qui encaisse</th>
-                                <th className="px-6 py-4 text-right pr-10">Gestion</th>
+                                <th className="px-4 py-3">Client</th>
+                                <th className="px-4 py-3">Deal & Paiements</th>
+                                <th className="px-4 py-3">Prochaine Échéance</th>
+                                <th className="px-4 py-3 text-center">Plateforme</th>
+                                <th className="px-4 py-3">Encaissé par</th>
+                                <th className="px-4 py-3 text-right">Gestion</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700">
@@ -325,23 +325,23 @@ export function Clients() {
 
                                     return (
                                         <tr key={client.id} className="hover:bg-slate-700/50 transition-colors group">
-                                            <td className="px-6 py-4">
-                                                <div className="font-bold text-white uppercase tracking-tight">{client.contacts?.nom || 'Inconnu'}</div>
+                                            <td className="px-4 py-3">
+                                                <div className="font-bold text-white uppercase tracking-tight whitespace-nowrap">{client.contacts?.nom || 'Inconnu'}</div>
                                                 <div className="text-[10px] text-slate-500">Signé le {new Date(client.created_at || '').toLocaleDateString('fr-FR')}</div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-white font-bold">{total.toLocaleString('fr-FR')} €</span>
+                                            <td className="px-4 py-3">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-white font-bold whitespace-nowrap">{total.toLocaleString('fr-FR')} €</span>
                                                         <span className="px-1.5 py-0.5 rounded bg-slate-900 text-[9px] font-black text-slate-400 border border-slate-700">{client.payment_method}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-[10px]">
-                                                        <span className="text-emerald-400 font-bold">{paid.toLocaleString('fr-FR')} € reçu</span>
-                                                        {pending > 0 && <span className="text-slate-500">• {pending.toLocaleString('fr-FR')} € restant</span>}
+                                                    <div className="flex items-center gap-1 text-[10px] flex-wrap">
+                                                        <span className="text-emerald-400 font-bold whitespace-nowrap">{paid.toLocaleString('fr-FR')} € reçu</span>
+                                                        {pending > 0 && <span className="text-slate-500 whitespace-nowrap">• {pending.toLocaleString('fr-FR')} € rest.</span>}
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 py-3">
                                                 {nextDue ? (
                                                     <div className={`flex items-center gap-2 font-medium ${isOverdue ? 'text-rose-400' : 'text-amber-400'}`}>
                                                         <Calendar size={14} />
@@ -368,27 +368,27 @@ export function Clients() {
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${client.billing_platform === 'Mollie' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' :
+                                            <td className="px-4 py-3 text-center">
+                                                <span className={`px-2 py-1 rounded-lg text-[10px] font-black border whitespace-nowrap ${client.billing_platform === 'Mollie' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' :
                                                     client.billing_platform === 'Revolut' ? 'border-pink-500/50 text-pink-400 bg-pink-500/10' :
                                                         'border-blue-500/50 text-blue-400 bg-blue-500/10'
                                                     }`}>
                                                     {client.billing_platform || 'N/A'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white ${client.closed_by === 'Noé' ? 'bg-blue-600' :
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white flex-shrink-0 ${client.closed_by === 'Noé' ? 'bg-blue-600' :
                                                         client.closed_by === 'Imrane' ? 'bg-amber-600' :
                                                             client.closed_by === 'Baptiste' ? 'bg-emerald-600' :
                                                                 'bg-slate-600'
                                                         }`}>
                                                         {client.closed_by?.charAt(0)}
                                                     </div>
-                                                    <span className="text-xs text-slate-300 font-medium">{client.closed_by}</span>
+                                                    <span className="text-xs text-slate-300 font-medium whitespace-nowrap">{client.closed_by}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-right pr-6">
+                                            <td className="px-4 py-3 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         onClick={() => setSelectedClient(client)}

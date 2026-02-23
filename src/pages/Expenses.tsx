@@ -303,17 +303,18 @@ export function Expenses() {
             </div>
 
             <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-900/50 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-700">
-                            <th className="px-6 py-4">Dépense</th>
-                            <th className="px-6 py-4">Payé par</th>
-                            <th className="px-6 py-4">Catégorie</th>
-                            <th className="px-6 py-4">Type</th>
-                            <th className="px-6 py-4">Date</th>
-                            <th className="px-6 py-4 text-right">Montant</th>
-                            <th className="px-6 py-4 text-center">Mois en cours</th>
-                            <th className="px-6 py-4 text-right">Actions</th>
+                            <th className="px-4 py-3">Dépense</th>
+                            <th className="px-4 py-3">Payé par</th>
+                            <th className="px-4 py-3">Catégorie</th>
+                            <th className="px-4 py-3">Type</th>
+                            <th className="px-4 py-3">Date</th>
+                            <th className="px-4 py-3 text-right">Montant</th>
+                            <th className="px-4 py-3 text-center">Mois en cours</th>
+                            <th className="px-4 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/50">
@@ -334,7 +335,7 @@ export function Expenses() {
                                         onClick={() => { setSelectedExpense(exp); setIsExpenseModalOpen(true); }}
                                         className="hover:bg-slate-750 transition-colors cursor-pointer group"
                                     >
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <div className="flex flex-col">
                                                 <p className="text-sm font-bold text-white uppercase group-hover:text-blue-400 transition-colors">{exp.name}</p>
                                                 {exp.is_deducted && (
@@ -342,7 +343,7 @@ export function Expenses() {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${exp.paid_by === 'Noé' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                                                 exp.paid_by === 'Baptiste' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
                                                     'bg-amber-500/10 text-amber-400 border-amber-500/20'
@@ -350,12 +351,12 @@ export function Expenses() {
                                                 {exp.paid_by || 'Noé'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <span className="text-[10px] font-bold text-slate-400 bg-slate-900 px-2 py-0.5 rounded uppercase border border-slate-700">
                                                 {exp.category || 'Non classé'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 transition-all">
+                                        <td className="px-4 py-3 transition-all">
                                             <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase border ${exp.type === 'monthly'
                                                 ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                                                 : 'bg-slate-700/50 text-slate-400 border-slate-700'
@@ -363,18 +364,18 @@ export function Expenses() {
                                                 {exp.type === 'monthly' ? 'Mensuel' : 'One Shot'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <div className="flex items-center gap-2 text-xs text-slate-400">
                                                 <Calendar size={12} />
-                                                {new Date(exp.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                                {new Date(exp.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-4 py-3 text-right">
                                             <p className={`text-sm font-black ${deducted ? 'text-emerald-400' : 'text-rose-400'}`}>
                                                 -{Number(exp.amount).toLocaleString('fr-FR')} €
                                             </p>
                                         </td>
-                                        <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                                        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                                             {exp.type === 'monthly' ? (
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
@@ -432,7 +433,7 @@ export function Expenses() {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
+                                        <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                                             <button
                                                 onClick={(e) => handleDeleteExpense(e, exp)}
                                                 className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
@@ -447,6 +448,7 @@ export function Expenses() {
                         )}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <ExpenseModal

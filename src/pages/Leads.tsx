@@ -66,15 +66,15 @@ export function Leads() {
 
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
+                    <table className="w-full text-left text-sm text-slate-400 min-w-[600px]">
                         <thead className="bg-slate-900/50 text-xs uppercase font-medium text-slate-300">
                             <tr>
-                                <th className="px-6 py-4">Nom</th>
-                                <th className="px-6 py-4">Email</th>
-                                <th className="px-6 py-4">Provenance</th>
-                                <th className="px-6 py-4">Réseau Social</th>
-                                <th className="px-6 py-4">Assigné à</th>
-                                <th className="px-6 py-4">Date création</th>
+                                <th className="px-4 py-3">Nom</th>
+                                <th className="px-4 py-3">Email</th>
+                                <th className="px-4 py-3">Provenance</th>
+                                <th className="px-4 py-3">Réseau Social</th>
+                                <th className="px-4 py-3">Assigné à</th>
+                                <th className="px-4 py-3">Date création</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700">
@@ -89,33 +89,29 @@ export function Leads() {
                             ) : (
                                 filteredLeads.map((lead) => (
                                     <tr key={lead.id} className="hover:bg-slate-700/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-white">
+                                        <td className="px-4 py-3 font-medium text-white whitespace-nowrap">
                                             {lead.prenom} {lead.nom}
                                         </td>
-                                        <td className="px-6 py-4">{lead.email || '-'}</td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                        <td className="px-4 py-3 text-xs truncate max-w-[160px]">{lead.email || '-'}</td>
+                                        <td className="px-4 py-3">
+                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">
                                                 {lead.provenance || '-'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            {lead.social_media ? (
-                                                <span className="flex items-center gap-1">
-                                                    {lead.social_media}
-                                                </span>
-                                            ) : '-'}
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            {lead.social_media || '-'}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-300">
+                                        <td className="px-4 py-3 text-slate-300">
                                             {lead.assigned_to ? (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs text-white">
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs text-white flex-shrink-0">
                                                         {lead.assigned_to.charAt(0)}
                                                     </div>
-                                                    {lead.assigned_to}
+                                                    <span className="whitespace-nowrap">{lead.assigned_to}</span>
                                                 </div>
                                             ) : '-'}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-500">
+                                        <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
                                             {new Date(lead.created_at || '').toLocaleDateString('fr-FR')}
                                         </td>
                                     </tr>
