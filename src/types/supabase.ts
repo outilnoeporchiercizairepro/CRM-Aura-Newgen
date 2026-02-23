@@ -179,6 +179,44 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_history: {
+        Row: {
+          id: string
+          contact_id: string
+          status: Database["public"]["Enums"]["pipeline_status_enum"]
+          changed_at: string
+          notes: string | null
+          r1_date: string | null
+          r2_date: string | null
+        }
+        Insert: {
+          id?: string
+          contact_id: string
+          status: Database["public"]["Enums"]["pipeline_status_enum"]
+          changed_at?: string
+          notes?: string | null
+          r1_date?: string | null
+          r2_date?: string | null
+        }
+        Update: {
+          id?: string
+          contact_id?: string
+          status?: Database["public"]["Enums"]["pipeline_status_enum"]
+          changed_at?: string
+          notes?: string | null
+          r1_date?: string | null
+          r2_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_history_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       contacts: {
         Row: {
           created_at: string | null
@@ -193,6 +231,7 @@ export type Database = {
           presentation: string | null
           status: Database["public"]["Enums"]["contact_status_enum"] | null
           source: string | null
+          pipeline_status: Database["public"]["Enums"]["pipeline_status_enum"] | null
         }
         Insert: {
           created_at?: string | null
@@ -207,6 +246,7 @@ export type Database = {
           presentation?: string | null
           status?: Database["public"]["Enums"]["contact_status_enum"] | null
           source?: string | null
+          pipeline_status?: Database["public"]["Enums"]["pipeline_status_enum"] | null
         }
         Update: {
           created_at?: string | null
@@ -221,6 +261,7 @@ export type Database = {
           presentation?: string | null
           status?: Database["public"]["Enums"]["contact_status_enum"] | null
           source?: string | null
+          pipeline_status?: Database["public"]["Enums"]["pipeline_status_enum"] | null
         }
         Relationships: [
           {
@@ -291,6 +332,16 @@ export type Database = {
       social_media_enum: "Youtube" | "Instagram" | "Linkedin" | "Tiktok"
       team_member_enum: "Noé" | "Baptiste" | "Imrane"
       billing_platform_enum: "Mollie" | "GoCardless" | "Revolut"
+      pipeline_status_enum:
+      | "prospect"
+      | "r1_planifie"
+      | "r1_realise"
+      | "qualifie"
+      | "non_qualifie"
+      | "r2_planifie"
+      | "r2_realise"
+      | "close_gagne"
+      | "close_perdu"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -437,6 +488,17 @@ export const Constants = {
       provenance_enum: ["Tally", "DM", "Skool"],
       social_media_enum: ["Youtube", "Instagram", "Linkedin", "Tiktok"],
       team_member_enum: ["Noé", "Baptiste", "Imrane"],
+      pipeline_status_enum: [
+        "prospect",
+        "r1_planifie",
+        "r1_realise",
+        "qualifie",
+        "non_qualifie",
+        "r2_planifie",
+        "r2_realise",
+        "close_gagne",
+        "close_perdu",
+      ],
     },
   },
 } as const

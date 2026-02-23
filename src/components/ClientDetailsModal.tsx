@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { X, Loader2, DollarSign, PieChart, TrendingUp, Save, Calendar, AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
+import { X, Loader2, DollarSign, PieChart, TrendingUp, Save, Calendar, AlertTriangle, RefreshCw, Trash2, GitBranch } from 'lucide-react';
+import { PipelineTab } from './PipelineTab';
 
 type Client = Database['public']['Tables']['clients']['Row'] & {
     contacts: Database['public']['Tables']['contacts']['Row'] | null
@@ -21,10 +22,14 @@ interface Props {
 const PAYMENT_METHODS: PaymentMethod[] = ['One shot', '2x', '3x', '4x'];
 const TEAM_MEMBERS: TeamMember[] = ['Noé', 'Baptiste', 'Imrane'];
 
+type Tab = 'finance' | 'pipeline';
+
 export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props) {
+    const [activeTab, setActiveTab] = useState<Tab>('finance');
     const [loading, setLoading] = useState(false);
     const [installments, setInstallments] = useState<Installment[]>([]);
     const [loadingInstallments, setLoadingInstallments] = useState(false);
+    const [contact, setContact] = useState(client.contacts);
 
     const [formData, setFormData] = useState({
         deal_amount: client.deal_amount.toString(),
@@ -43,6 +48,7 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
     useEffect(() => {
         if (isOpen) {
             fetchInstallments();
+            fetchContact();
             setFormData({
                 deal_amount: client.deal_amount.toString(),
                 amount_paid: client.amount_paid?.toString() || '0',
@@ -58,6 +64,16 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
             });
         }
     }, [client, isOpen]);
+
+    async function fetchContact() {
+        if (!client.contact_id) return;
+        const { data } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('id', client.contact_id)
+            .maybeSingle();
+        if (data) setContact(data);
+    }
 
     async function fetchInstallments() {
         setLoadingInstallments(true);
@@ -81,12 +97,10 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
 
     const dealAmount = parseFloat(formData.deal_amount) || 0;
 
-    // AmountPaid should be dynamic based on installments if they exist
     const installmentsTotalPaid = installments
         .filter(i => i.status === 'Payé')
         .reduce((sum, i) => sum + Number(i.amount), 0);
 
-    // Use the maximum of the two or installments if they exist
     const amountPaid = installments.length > 0 ? installmentsTotalPaid : (parseFloat(formData.amount_paid) || 0);
 
     const amountPending = dealAmount - amountPaid;
@@ -98,7 +112,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
     async function handleSave() {
         setLoading(true);
         try {
-            // Check if payment method changed
             if (formData.payment_method !== client.payment_method) {
                 if (!confirm("Le mode de paiement a été modifié. Voulez-vous sauvegarder ? L'échéancier devra probablement être régénéré.")) {
                     setLoading(false);
@@ -110,7 +123,7 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                 .from('clients')
                 .update({
                     deal_amount: dealAmount,
-                    amount_paid: amountPaid, // Still using the statistical sum
+                    amount_paid: amountPaid,
                     payment_method: formData.payment_method,
                     billing_platform: formData.billing_platform,
                     closed_by: formData.closed_by,
@@ -138,7 +151,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
             if (formData.payment_method === '3x') numPayments = 3;
             if (formData.payment_method === '4x') numPayments = 4;
 
-            // Confirm before overwriting
             if (installments.length > 0) {
                 if (!confirm("Un échéancier existe déjà. Voulez-vous le supprimer et en générer un nouveau ?")) {
                     setLoading(false);
@@ -156,7 +168,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
             const newInstallments = [];
 
             if (numPayments === 1) {
-                // One shot: single installment for full amount
                 newInstallments.push({
                     client_id: client.id,
                     amount: dealAmount,
@@ -168,7 +179,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                 const remainingAmount = dealAmount - initialPaid;
                 const installmentAmount = remainingAmount / (numPayments - 1);
 
-                // First payment (already partially or fully paid)
                 newInstallments.push({
                     client_id: client.id,
                     amount: initialPaid,
@@ -176,7 +186,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                     status: 'Payé'
                 });
 
-                // Subsequent payments
                 for (let i = 1; i < numPayments; i++) {
                     const dueDate = new Date();
                     dueDate.setDate(dueDate.getDate() + (i * 30));
@@ -206,7 +215,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
         if (installment.status === targetStatus) return;
         setLoading(true);
         try {
-            // 1. Calculate delta for amount_paid
             const instAmount = Number(installment.amount);
             const wasConsideredPaid = installment.status === 'Payé';
             const isNowConsideredPaid = targetStatus === 'Payé';
@@ -218,7 +226,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                 newTotalPaid -= instAmount;
             }
 
-            // 2. Update Installment
             const { error: instError } = await supabase
                 .from('client_installments')
                 .update({ status: targetStatus })
@@ -226,7 +233,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
 
             if (instError) throw instError;
 
-            // 3. Update Client if amount changed
             if (newTotalPaid !== amountPaid) {
                 const { error: clientError } = await supabase
                     .from('clients')
@@ -279,7 +285,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
 
         setLoading(true);
         try {
-            // First delete associated installments
             const { error: instError } = await supabase
                 .from('client_installments')
                 .delete()
@@ -287,7 +292,6 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
 
             if (instError) throw instError;
 
-            // Then delete the client
             const { error: clientError } = await supabase
                 .from('clients')
                 .delete()
@@ -312,248 +316,278 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                 <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                     <div>
                         <h2 className="text-xl font-bold text-white uppercase tracking-tight">{client.contacts?.nom || 'Client'}</h2>
-                        <p className="text-sm text-slate-400">Gestion Financière & Échéancier</p>
+                        <p className="text-sm text-slate-400">Fiche Client</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white">
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-800 overflow-hidden max-h-[85vh]">
-                    {/* Left: General Info & Commissions */}
-                    <div className="flex-1 p-6 space-y-8 overflow-y-auto">
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-2 text-white">
-                                <TrendingUp size={18} className="text-blue-400" />
-                                <h3 className="text-sm font-bold uppercase tracking-wider">Paramètres du Deal</h3>
-                            </div>
+                {/* Tabs */}
+                <div className="flex border-b border-slate-800 bg-slate-900/50 px-6">
+                    <button
+                        onClick={() => setActiveTab('finance')}
+                        className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${activeTab === 'finance'
+                            ? 'border-blue-500 text-blue-400'
+                            : 'border-transparent text-slate-500 hover:text-slate-300'
+                            }`}
+                    >
+                        <TrendingUp size={14} />
+                        Financier
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('pipeline')}
+                        className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${activeTab === 'pipeline'
+                            ? 'border-blue-500 text-blue-400'
+                            : 'border-transparent text-slate-500 hover:text-slate-300'
+                            }`}
+                    >
+                        <GitBranch size={14} />
+                        Pipeline
+                    </button>
+                </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Montant Deal (€)</label>
-                                    <div className="relative">
-                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
-                                        <input
-                                            type="number"
-                                            value={formData.deal_amount}
-                                            onChange={(e) => setFormData({ ...formData, deal_amount: e.target.value })}
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-4 py-2 text-white font-bold text-sm outline-none focus:border-blue-500"
-                                        />
+                {activeTab === 'finance' ? (
+                    <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-800 overflow-hidden max-h-[75vh]">
+                        {/* Left: General Info & Commissions */}
+                        <div className="flex-1 p-6 space-y-8 overflow-y-auto">
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-2 text-white">
+                                    <TrendingUp size={18} className="text-blue-400" />
+                                    <h3 className="text-sm font-bold uppercase tracking-wider">Paramètres du Deal</h3>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Montant Deal (€)</label>
+                                        <div className="relative">
+                                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                                            <input
+                                                type="number"
+                                                value={formData.deal_amount}
+                                                onChange={(e) => setFormData({ ...formData, deal_amount: e.target.value })}
+                                                className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-4 py-2 text-white font-bold text-sm outline-none focus:border-blue-500"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Mode de Paiement</label>
-                                    <select
-                                        value={formData.payment_method}
-                                        onChange={(e) => setFormData({ ...formData, payment_method: e.target.value as PaymentMethod })}
-                                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-blue-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:1rem] bg-[right_0.5rem_center] bg-no-repeat"
-                                    >
-                                        {PAYMENT_METHODS.map(method => (
-                                            <option key={method} value={method}>{method}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="pt-2">
-                                <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Plateforme de Paiement</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {(['Mollie', 'GoCardless', 'Revolut'] as const).map(platform => (
-                                        <button
-                                            key={platform}
-                                            type="button"
-                                            onClick={() => setFormData({ ...formData, billing_platform: platform })}
-                                            className={`py-2 px-1 text-[10px] font-black rounded-lg border transition-all ${formData.billing_platform === platform
-                                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
-                                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
-                                                }`}
-                                        >
-                                            {platform}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/20">
-                                <div className="flex justify-between items-end mb-2">
-                                    <label className="block text-[10px] text-emerald-500 font-bold uppercase">Total Encaissé</label>
-                                    <span className="text-2xl font-black text-emerald-400">{amountPaid.toLocaleString('fr-FR')} €</span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs">
-                                    <span className="text-slate-500 italic">Reste à percevoir</span>
-                                    <span className={`font-bold ${amountPending > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                                        {amountPending.toLocaleString('fr-FR')} €
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-6 pt-6 border-t border-slate-800">
-                            <div className="flex items-center gap-2 text-white">
-                                <PieChart size={18} className="text-blue-400" />
-                                <h3 className="text-sm font-bold uppercase tracking-wider">Répartition Commissions</h3>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="flex-1">
-                                        <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Setter (%)</label>
-                                        <input
-                                            type="number"
-                                            value={formData.setter_commission_percentage}
-                                            onChange={(e) => setFormData({ ...formData, setter_commission_percentage: e.target.value })}
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-blue-500"
-                                        />
-                                    </div>
-                                    <div className="flex-1">
-                                        <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Qui encaisse ?</label>
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Mode de Paiement</label>
                                         <select
-                                            value={formData.closed_by}
-                                            onChange={(e) => setFormData({ ...formData, closed_by: e.target.value as TeamMember })}
+                                            value={formData.payment_method}
+                                            onChange={(e) => setFormData({ ...formData, payment_method: e.target.value as PaymentMethod })}
                                             className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-blue-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:1rem] bg-[right_0.5rem_center] bg-no-repeat"
                                         >
-                                            {TEAM_MEMBERS.map(member => (
-                                                <option key={member} value={member}>{member}</option>
+                                            {PAYMENT_METHODS.map(method => (
+                                                <option key={method} value={method}>{method}</option>
                                             ))}
                                         </select>
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
-                                    <p className="text-[10px] text-slate-500 uppercase font-bold">Dispatch Associés (Net de Setter)</p>
-                                    {TEAM_MEMBERS.map(member => (
-                                        <div key={member} className="flex items-center justify-between">
-                                            <span className="text-xs text-slate-300">{member}</span>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="number"
-                                                    value={formData.distribution[member as keyof typeof formData.distribution]}
-                                                    onChange={(e) => handleDistributionChange(member, e.target.value)}
-                                                    className="w-14 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-[10px] text-right"
-                                                />
-                                                <span className="text-[10px] text-slate-600 w-4">%</span>
-                                                <span className="text-xs font-bold text-white min-w-[70px] text-right">
-                                                    {((amountAfterSetter * (formData.distribution[member as keyof typeof formData.distribution] || 0)) / 100).toLocaleString('fr-FR')} €
-                                                </span>
-                                            </div>
+                                <div className="pt-2">
+                                    <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Plateforme de Paiement</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(['Mollie', 'GoCardless', 'Revolut'] as const).map(platform => (
+                                            <button
+                                                key={platform}
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, billing_platform: platform })}
+                                                className={`py-2 px-1 text-[10px] font-black rounded-lg border transition-all ${formData.billing_platform === platform
+                                                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
+                                                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                                                    }`}
+                                            >
+                                                {platform}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/20">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <label className="block text-[10px] text-emerald-500 font-bold uppercase">Total Encaissé</label>
+                                        <span className="text-2xl font-black text-emerald-400">{amountPaid.toLocaleString('fr-FR')} €</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-slate-500 italic">Reste à percevoir</span>
+                                        <span className={`font-bold ${amountPending > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
+                                            {amountPending.toLocaleString('fr-FR')} €
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6 pt-6 border-t border-slate-800">
+                                <div className="flex items-center gap-2 text-white">
+                                    <PieChart size={18} className="text-blue-400" />
+                                    <h3 className="text-sm font-bold uppercase tracking-wider">Répartition Commissions</h3>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-1">
+                                            <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Setter (%)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.setter_commission_percentage}
+                                                onChange={(e) => setFormData({ ...formData, setter_commission_percentage: e.target.value })}
+                                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-blue-500"
+                                            />
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right: Payment Schedule */}
-                    <div className="w-full md:w-[450px] bg-slate-900/50 p-6 space-y-6 overflow-y-auto">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-white">
-                                <Calendar size={18} className="text-blue-400" />
-                                <h3 className="text-sm font-bold uppercase tracking-wider">Échéancier</h3>
-                            </div>
-                            {installments.length > 0 && (
-                                <button
-                                    onClick={deleteSchedule}
-                                    className="text-slate-600 hover:text-rose-500 transition-colors"
-                                    title="Supprimer l'échéancier"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="space-y-3">
-                            {loadingInstallments ? (
-                                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-slate-600" /></div>
-                            ) : installments.length === 0 ? (
-                                <div className="py-12 flex flex-col items-center justify-center bg-slate-800/20 border-2 border-dashed border-slate-800 rounded-2xl gap-4">
-                                    <div className="p-3 bg-slate-800 rounded-full text-slate-600">
-                                        <RefreshCw size={32} />
+                                        <div className="flex-1">
+                                            <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Qui encaisse ?</label>
+                                            <select
+                                                value={formData.closed_by}
+                                                onChange={(e) => setFormData({ ...formData, closed_by: e.target.value as TeamMember })}
+                                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-blue-500 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:1rem] bg-[right_0.5rem_center] bg-no-repeat"
+                                            >
+                                                {TEAM_MEMBERS.map(member => (
+                                                    <option key={member} value={member}>{member}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="text-center">
-                                        <p className="text-slate-400 text-sm font-medium">Aucun échéancier généré</p>
-                                        <p className="text-slate-600 text-[10px] mt-1">Générez-le pour suivre les prochains paiements</p>
-                                    </div>
-                                    <button
-                                        onClick={generateSchedule}
-                                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-900/40"
-                                    >
-                                        Générer l'échéancier
-                                    </button>
-                                </div>
-                            ) : (
-                                installments.map((inst, idx) => {
-                                    const isPaid = inst.status === 'Payé';
-                                    const isTransit = inst.status === 'En transit';
-                                    const isWaiting = !isPaid && !isTransit;
-                                    const isOverdue = isWaiting && new Date(inst.due_date) < new Date();
 
-                                    return (
-                                        <div
-                                            key={inst.id}
-                                            className={`p-4 rounded-xl border transition-all ${isPaid
-                                                ? 'bg-emerald-500/5 border-emerald-500/20'
-                                                : isTransit
-                                                    ? 'bg-indigo-500/5 border-indigo-500/30 shadow-inner shadow-indigo-500/10'
-                                                    : isOverdue
-                                                        ? 'bg-rose-500/5 border-rose-500/30'
-                                                        : 'bg-slate-800/40 border-slate-700/50'
-                                                }`}
-                                        >
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">
-                                                        Échéance {idx + 1}
-                                                    </p>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-lg font-black text-white">{Number(inst.amount).toLocaleString('fr-FR')} €</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex flex-col items-end gap-2">
-                                                    <div className="flex items-center text-[11px] font-bold text-slate-400">
-                                                        État du paiement
-                                                    </div>
-                                                    <div className="flex bg-slate-900/50 p-1 rounded-lg border border-slate-700">
-                                                        <button
-                                                            onClick={() => setInstallmentStatus(inst, 'En attente')}
-                                                            className={`px-3 py-1 text-[9px] rounded-md transition-all font-black ${isWaiting ? 'bg-slate-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
-                                                        >
-                                                            NON
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setInstallmentStatus(inst, 'En transit')}
-                                                            className={`px-3 py-1 text-[9px] rounded-md transition-all font-black ${isTransit ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
-                                                        >
-                                                            TRANSIT
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setInstallmentStatus(inst, 'Payé')}
-                                                            className={`px-3 py-1 text-[9px] rounded-md transition-all font-black ${isPaid ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
-                                                        >
-                                                            OUI
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3 flex justify-between items-center text-[11px]">
-                                                <div className="flex items-center gap-1.5 text-slate-500">
-                                                    <Calendar size={12} />
-                                                    {new Date(inst.due_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                                </div>
-                                                {isOverdue && (
-                                                    <span className="flex items-center gap-1 text-[10px] font-black text-rose-400 bg-rose-400/10 px-2 py-0.5 rounded uppercase">
-                                                        <AlertTriangle size={10} /> Retard
+                                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+                                        <p className="text-[10px] text-slate-500 uppercase font-bold">Dispatch Associés (Net de Setter)</p>
+                                        {TEAM_MEMBERS.map(member => (
+                                            <div key={member} className="flex items-center justify-between">
+                                                <span className="text-xs text-slate-300">{member}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="number"
+                                                        value={formData.distribution[member as keyof typeof formData.distribution]}
+                                                        onChange={(e) => handleDistributionChange(member, e.target.value)}
+                                                        className="w-14 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-[10px] text-right"
+                                                    />
+                                                    <span className="text-[10px] text-slate-600 w-4">%</span>
+                                                    <span className="text-xs font-bold text-white min-w-[70px] text-right">
+                                                        {((amountAfterSetter * (formData.distribution[member as keyof typeof formData.distribution] || 0)) / 100).toLocaleString('fr-FR')} €
                                                     </span>
-                                                )}
+                                                </div>
                                             </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right: Payment Schedule */}
+                        <div className="w-full md:w-[450px] bg-slate-900/50 p-6 space-y-6 overflow-y-auto">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-white">
+                                    <Calendar size={18} className="text-blue-400" />
+                                    <h3 className="text-sm font-bold uppercase tracking-wider">Échéancier</h3>
+                                </div>
+                                {installments.length > 0 && (
+                                    <button
+                                        onClick={deleteSchedule}
+                                        className="text-slate-600 hover:text-rose-500 transition-colors"
+                                        title="Supprimer l'échéancier"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="space-y-3">
+                                {loadingInstallments ? (
+                                    <div className="flex justify-center py-10"><Loader2 className="animate-spin text-slate-600" /></div>
+                                ) : installments.length === 0 ? (
+                                    <div className="py-12 flex flex-col items-center justify-center bg-slate-800/20 border-2 border-dashed border-slate-800 rounded-2xl gap-4">
+                                        <div className="p-3 bg-slate-800 rounded-full text-slate-600">
+                                            <RefreshCw size={32} />
                                         </div>
-                                    );
-                                })
-                            )}
+                                        <div className="text-center">
+                                            <p className="text-slate-400 text-sm font-medium">Aucun échéancier généré</p>
+                                            <p className="text-slate-600 text-[10px] mt-1">Générez-le pour suivre les prochains paiements</p>
+                                        </div>
+                                        <button
+                                            onClick={generateSchedule}
+                                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-900/40"
+                                        >
+                                            Générer l'échéancier
+                                        </button>
+                                    </div>
+                                ) : (
+                                    installments.map((inst, idx) => {
+                                        const isPaid = inst.status === 'Payé';
+                                        const isTransit = inst.status === 'En transit';
+                                        const isWaiting = !isPaid && !isTransit;
+                                        const isOverdue = isWaiting && new Date(inst.due_date) < new Date();
+
+                                        return (
+                                            <div
+                                                key={inst.id}
+                                                className={`p-4 rounded-xl border transition-all ${isPaid
+                                                    ? 'bg-emerald-500/5 border-emerald-500/20'
+                                                    : isTransit
+                                                        ? 'bg-blue-500/5 border-blue-500/30 shadow-inner shadow-blue-500/10'
+                                                        : isOverdue
+                                                            ? 'bg-rose-500/5 border-rose-500/30'
+                                                            : 'bg-slate-800/40 border-slate-700/50'
+                                                    }`}
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">
+                                                            Échéance {idx + 1}
+                                                        </p>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-lg font-black text-white">{Number(inst.amount).toLocaleString('fr-FR')} €</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-col items-end gap-2">
+                                                        <div className="flex items-center text-[11px] font-bold text-slate-400">
+                                                            État du paiement
+                                                        </div>
+                                                        <div className="flex bg-slate-900/50 p-1 rounded-lg border border-slate-700">
+                                                            <button
+                                                                onClick={() => setInstallmentStatus(inst, 'En attente')}
+                                                                className={`px-3 py-1 text-[9px] rounded-md transition-all font-black ${isWaiting ? 'bg-slate-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                                            >
+                                                                NON
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setInstallmentStatus(inst, 'En transit')}
+                                                                className={`px-3 py-1 text-[9px] rounded-md transition-all font-black ${isTransit ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                                            >
+                                                                TRANSIT
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setInstallmentStatus(inst, 'Payé')}
+                                                                className={`px-3 py-1 text-[9px] rounded-md transition-all font-black ${isPaid ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                                            >
+                                                                OUI
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-3 flex justify-between items-center text-[11px]">
+                                                    <div className="flex items-center gap-1.5 text-slate-500">
+                                                        <Calendar size={12} />
+                                                        {new Date(inst.due_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                                    </div>
+                                                    {isOverdue && (
+                                                        <span className="flex items-center gap-1 text-[10px] font-black text-rose-400 bg-rose-400/10 px-2 py-0.5 rounded uppercase">
+                                                            <AlertTriangle size={10} /> Retard
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="max-h-[75vh] overflow-y-auto">
+                        <PipelineTab contact={contact} onUpdate={() => { fetchContact(); onUpdate(); }} />
+                    </div>
+                )}
 
                 {/* Footer */}
                 <div className="p-6 border-t border-slate-800 bg-slate-900/80 flex justify-between items-center px-8">
@@ -565,22 +599,32 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
                         <Trash2 size={18} />
                         Supprimer le client
                     </button>
-                    <div className="flex gap-3">
+                    {activeTab === 'finance' && (
+                        <div className="flex gap-3">
+                            <button
+                                onClick={onClose}
+                                className="px-6 py-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={loading}
+                                className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2 rounded-xl transition-all flex items-center gap-2 font-bold shadow-lg shadow-blue-900/40"
+                            >
+                                {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                Sauvegarder les modifications
+                            </button>
+                        </div>
+                    )}
+                    {activeTab === 'pipeline' && (
                         <button
                             onClick={onClose}
                             className="px-6 py-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
                         >
-                            Annuler
+                            Fermer
                         </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={loading}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2 rounded-xl transition-all flex items-center gap-2 font-bold shadow-lg shadow-blue-900/40"
-                        >
-                            {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                            Sauvegarder les modifications
-                        </button>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>
