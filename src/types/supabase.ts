@@ -222,6 +222,8 @@ export type Database = {
           created_at: string | null
           email: string | null
           first_closing_date: string | null
+          r1_date: string | null
+          r2_date: string | null
           id: string
           job_status: Database["public"]["Enums"]["job_status_enum"] | null
           lead_id: string | null
@@ -237,6 +239,8 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           first_closing_date?: string | null
+          r1_date?: string | null
+          r2_date?: string | null
           id?: string
           job_status?: Database["public"]["Enums"]["job_status_enum"] | null
           lead_id?: string | null
@@ -252,6 +256,8 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           first_closing_date?: string | null
+          r1_date?: string | null
+          r2_date?: string | null
           id?: string
           job_status?: Database["public"]["Enums"]["job_status_enum"] | null
           lead_id?: string | null

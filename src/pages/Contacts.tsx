@@ -69,7 +69,7 @@ export function Contacts() {
             const matchesSearch = contact.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 contact.email?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
-            const matchesToday = !todayOnly || contact.first_closing_date === todayStr;
+            const matchesToday = !todayOnly || contact.r1_date === todayStr;
             return matchesSearch && matchesStatus && matchesToday;
         });
     }, [contacts, searchTerm, statusFilter, todayOnly, todayStr]);
@@ -348,18 +348,19 @@ export function Contacts() {
                                 <th className="px-3 py-3">Statut Contact</th>
                                 <th className="px-3 py-3">Pipeline</th>
                                 <th className="px-3 py-3">Source</th>
-                                <th className="px-3 py-3">1er closing</th>
+                                <th className="px-3 py-3">R1</th>
+                                <th className="px-3 py-3">R2</th>
                                 <th className="px-3 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-8 text-center text-slate-500">Chargement...</td>
+                                    <td colSpan={9} className="px-6 py-8 text-center text-slate-500">Chargement...</td>
                                 </tr>
                             ) : filteredContacts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-8 text-center text-slate-500">Aucun contact trouvé</td>
+                                    <td colSpan={9} className="px-6 py-8 text-center text-slate-500">Aucun contact trouvé</td>
                                 </tr>
                             ) : (
                                 filteredContacts.map((contact) => (
@@ -406,11 +407,18 @@ export function Contacts() {
                                             </span>
                                         </td>
                                         <td className="px-3 py-3 text-slate-400 whitespace-nowrap">
-                                            {contact.first_closing_date ? new Date(contact.first_closing_date).toLocaleDateString('fr-FR', {
-                                                day: '2-digit',
-                                                month: '2-digit',
-                                                year: '2-digit'
-                                            }) : <span className="text-slate-600 italic text-xs">-</span>}
+                                            {contact.r1_date ? (
+                                                <span className="text-blue-300 text-xs font-medium">
+                                                    {new Date(contact.r1_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                                </span>
+                                            ) : <span className="text-slate-600 italic text-xs">-</span>}
+                                        </td>
+                                        <td className="px-3 py-3 text-slate-400 whitespace-nowrap">
+                                            {contact.r2_date ? (
+                                                <span className="text-teal-300 text-xs font-medium">
+                                                    {new Date(contact.r2_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                                </span>
+                                            ) : <span className="text-slate-600 italic text-xs">-</span>}
                                         </td>
                                         <td className="px-3 py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
