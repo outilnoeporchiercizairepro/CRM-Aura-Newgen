@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Search, Filter, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, AlertCircle, Wallet, PieChart as PieChartIcon, BarChart3 as BarChartIcon, GitBranch } from 'lucide-react';
+import { Search, Filter, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, AlertCircle, Wallet, PieChart as PieChartIcon, BarChart3 as BarChartIcon } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { StatusSelect } from '../components/StatusSelect';
+import { PipelineStatusSelect } from '../components/PipelineStatusSelect';
 import { NewContactModal } from '../components/NewContactModal';
 import { ContactCardModal } from '../components/ContactCardModal';
 import { ConvertToClientModal } from '../components/ConvertToClientModal';
@@ -13,18 +14,6 @@ type Contact = Database['public']['Tables']['contacts']['Row'] & {
 };
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status_enum'];
-
-const PIPELINE_BADGE: Record<PipelineStatus, { label: string; bg: string; text: string }> = {
-    prospect:      { label: 'Prospect',      bg: 'bg-slate-700',       text: 'text-slate-300' },
-    r1_planifie:   { label: 'R1 Planifié',   bg: 'bg-blue-500/20',     text: 'text-blue-300' },
-    r1_realise:    { label: 'R1 Réalisé',    bg: 'bg-cyan-500/20',     text: 'text-cyan-300' },
-    qualifie:      { label: 'Qualifié',      bg: 'bg-emerald-500/20',  text: 'text-emerald-300' },
-    non_qualifie:  { label: 'Non Qualifié',  bg: 'bg-amber-500/20',    text: 'text-amber-300' },
-    r2_planifie:   { label: 'R2 Planifié',   bg: 'bg-blue-500/20',     text: 'text-blue-300' },
-    r2_realise:    { label: 'R2 Réalisé',    bg: 'bg-teal-500/20',     text: 'text-teal-300' },
-    close_gagne:   { label: 'Closé Gagné',   bg: 'bg-emerald-500/20',  text: 'text-emerald-300' },
-    close_perdu:   { label: 'Closé Perdu',   bg: 'bg-rose-500/20',     text: 'text-rose-300' },
-};
 
 export function Contacts() {
     const [contacts, setContacts] = useState<Contact[]>([]);
@@ -88,6 +77,12 @@ export function Contacts() {
     const handleStatusUpdate = (contactId: string, newStatus: string) => {
         setContacts(prev => prev.map(c =>
             c.id === contactId ? { ...c, status: newStatus as any } : c
+        ));
+    };
+
+    const handlePipelineUpdate = (contactId: string, newStatus: string) => {
+        setContacts(prev => prev.map(c =>
+            c.id === contactId ? { ...c, pipeline_status: newStatus as any } : c
         ));
     };
 
@@ -396,17 +391,11 @@ export function Contacts() {
                                             />
                                         </td>
                                         <td className="px-3 py-3">
-                                            {contact.pipeline_status ? (
-                                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold whitespace-nowrap ${PIPELINE_BADGE[contact.pipeline_status as PipelineStatus]?.bg ?? 'bg-slate-700'} ${PIPELINE_BADGE[contact.pipeline_status as PipelineStatus]?.text ?? 'text-slate-300'}`}>
-                                                    <GitBranch size={9} />
-                                                    {PIPELINE_BADGE[contact.pipeline_status as PipelineStatus]?.label ?? contact.pipeline_status}
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-slate-700 text-slate-400 whitespace-nowrap">
-                                                    <GitBranch size={9} />
-                                                    Prospect
-                                                </span>
-                                            )}
+                                            <PipelineStatusSelect
+                                                currentStatus={contact.pipeline_status as PipelineStatus ?? 'prospect'}
+                                                contactId={contact.id}
+                                                onStatusChange={(newStatus) => handlePipelineUpdate(contact.id, newStatus)}
+                                            />
                                         </td>
                                         <td className="px-3 py-3">
                                             <span
