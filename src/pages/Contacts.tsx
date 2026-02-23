@@ -69,7 +69,7 @@ export function Contacts() {
             const matchesSearch = contact.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 contact.email?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
-            const matchesToday = !todayOnly || contact.r1_date === todayStr;
+            const matchesToday = !todayOnly || contact.r1_date === todayStr || contact.r2_date === todayStr;
             return matchesSearch && matchesStatus && matchesToday;
         });
     }, [contacts, searchTerm, statusFilter, todayOnly, todayStr]);
