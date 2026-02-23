@@ -10,6 +10,7 @@ type Contact = Database['public']['Tables']['contacts']['Row'];
 interface Props {
     contact: Contact | null;
     onUpdate: () => void;
+    readOnly?: boolean;
 }
 
 const PIPELINE_STEPS: {
@@ -62,7 +63,7 @@ function getStatusLabel(status: PipelineStatus): string {
     return all.find(s => s.status === status)?.label ?? status;
 }
 
-export function PipelineTab({ contact, onUpdate }: Props) {
+export function PipelineTab({ contact, onUpdate, readOnly = false }: Props) {
     const [history, setHistory] = useState<PipelineHistory[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -97,7 +98,7 @@ export function PipelineTab({ contact, onUpdate }: Props) {
     }
 
     function requestStatusChange(status: PipelineStatus) {
-        if (status === currentStatus) return;
+        if (readOnly || status === currentStatus) return;
         setPendingStatus(status);
         setNoteText('');
         setR1Date('');
@@ -189,8 +190,9 @@ export function PipelineTab({ contact, onUpdate }: Props) {
                                 <div key={step.status} className="flex items-center flex-1 min-w-0">
                                     <button
                                         onClick={() => requestStatusChange(step.status)}
+                                        disabled={readOnly}
                                         title={step.label}
-                                        className={`relative flex flex-col items-center group flex-shrink-0 transition-all ${isFuture ? 'opacity-40 hover:opacity-70' : ''}`}
+                                        className={`relative flex flex-col items-center group flex-shrink-0 transition-all ${isFuture ? 'opacity-40 hover:opacity-70' : ''} ${readOnly ? 'cursor-default' : ''}`}
                                     >
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${isDone
                                             ? 'bg-emerald-500 border-emerald-400 text-white'
@@ -224,10 +226,11 @@ export function PipelineTab({ contact, onUpdate }: Props) {
                         <button
                             key={step.status}
                             onClick={() => requestStatusChange(step.status)}
+                            disabled={readOnly}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${currentStatus === step.status
                                 ? `${STATUS_COLORS[step.status].bg} ${STATUS_COLORS[step.status].border} ${STATUS_COLORS[step.status].text}`
                                 : 'bg-slate-800/40 border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'
-                                }`}
+                                } ${readOnly ? 'cursor-default' : ''}`}
                         >
                             <XCircle size={13} />
                             {step.label}
@@ -253,6 +256,7 @@ export function PipelineTab({ contact, onUpdate }: Props) {
                                 key={entry.id}
                                 entry={entry}
                                 onSaveNote={updateHistoryNote}
+                                readOnly={readOnly}
                             />
                         ))}
                     </div>
@@ -344,7 +348,7 @@ export function PipelineTab({ contact, onUpdate }: Props) {
     );
 }
 
-function HistoryEntry({ entry, onSaveNote }: { entry: PipelineHistory; onSaveNote: (id: string, notes: string) => void }) {
+function HistoryEntry({ entry, onSaveNote, readOnly = false }: { entry: PipelineHistory; onSaveNote: (id: string, notes: string) => void; readOnly?: boolean }) {
     const [editing, setEditing] = useState(false);
     const [note, setNote] = useState(entry.notes ?? '');
     const colors = STATUS_COLORS[entry.status];
@@ -382,7 +386,7 @@ function HistoryEntry({ entry, onSaveNote }: { entry: PipelineHistory; onSaveNot
             </div>
 
             <div className="mt-2 ml-4">
-                {editing ? (
+                {!readOnly && editing ? (
                     <textarea
                         autoFocus
                         value={note}
@@ -393,15 +397,18 @@ function HistoryEntry({ entry, onSaveNote }: { entry: PipelineHistory; onSaveNot
                     />
                 ) : (
                     <button
-                        onClick={() => setEditing(true)}
-                        className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 transition-colors group"
+                        onClick={() => !readOnly && setEditing(true)}
+                        disabled={readOnly}
+                        className={`flex items-center gap-1.5 text-[11px] text-slate-500 transition-colors group ${readOnly ? 'cursor-default' : 'hover:text-slate-300'}`}
                     >
                         {note
                             ? <span className="text-slate-400 italic">{note}</span>
-                            : <>
-                                <Plus size={10} className="group-hover:text-blue-400" />
-                                <span className="group-hover:text-slate-300">Ajouter une note</span>
-                            </>
+                            : !readOnly
+                                ? <>
+                                    <Plus size={10} className="group-hover:text-blue-400" />
+                                    <span className="group-hover:text-slate-300">Ajouter une note</span>
+                                </>
+                                : null
                         }
                     </button>
                 )}

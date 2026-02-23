@@ -378,6 +378,7 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                         <div className="-mx-6 -mt-6">
                             <PipelineTab
                                 contact={currentContact}
+                                readOnly={readOnly}
                                 onUpdate={() => {
                                     supabase
                                         .from('contacts')
