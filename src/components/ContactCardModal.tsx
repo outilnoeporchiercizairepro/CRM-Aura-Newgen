@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { X, Save, Trash2, Loader2, Link as LinkIcon, Info, FileText, StickyNote, Trophy, GitBranch } from 'lucide-react';
+import { X, Save, Trash2, Loader2, Link as LinkIcon, Info, FileText, StickyNote, Trophy, GitBranch, Calendar } from 'lucide-react';
 import { PipelineTab } from './PipelineTab';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
@@ -38,10 +38,14 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
         phone: contact.phone || '',
         job_status: contact.job_status || null,
         first_closing_date: contact.first_closing_date || '',
+        r1_date: contact.r1_date || '',
+        r2_date: contact.r2_date || '',
         presentation: contact.presentation || '',
         notes: contact.notes || '',
         source: contact.source || ''
     });
+    const [r1PickerOpen, setR1PickerOpen] = useState(false);
+    const [r2PickerOpen, setR2PickerOpen] = useState(false);
 
     useEffect(() => {
         setCurrentContact(contact);
@@ -55,6 +59,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
             phone: contact.phone || '',
             job_status: contact.job_status || null,
             first_closing_date: contact.first_closing_date || '',
+            r1_date: contact.r1_date || '',
+            r2_date: contact.r2_date || '',
             presentation: contact.presentation || '',
             notes: contact.notes || '',
             source: contact.source || ''
@@ -87,6 +93,8 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                     phone: formData.phone,
                     job_status: formData.job_status,
                     first_closing_date: formData.first_closing_date || null,
+                    r1_date: formData.r1_date || null,
+                    r2_date: formData.r2_date || null,
                     presentation: formData.presentation,
                     notes: formData.notes,
                     source: formData.source
@@ -277,6 +285,77 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                                         className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                         placeholder="Lien direct (par défaut)"
                                     />
+                                </div>
+                            </div>
+
+                            {/* R1 / R2 Dates */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="relative">
+                                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Date R1</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => { if (!readOnly) { setR1PickerOpen(!r1PickerOpen); setR2PickerOpen(false); }}}
+                                        className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between transition-colors ${
+                                            formData.r1_date ? 'text-blue-300 border-blue-500/40' : 'text-slate-400 border-slate-700'
+                                        } ${readOnly ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-500/60 cursor-pointer'}`}
+                                    >
+                                        <span>{formData.r1_date ? new Date(formData.r1_date + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' }) : 'Non défini'}</span>
+                                        <Calendar size={14} className="text-slate-500" />
+                                    </button>
+                                    {r1PickerOpen && !readOnly && (
+                                        <div className="absolute z-10 top-full mt-1 left-0 bg-slate-800 border border-slate-600 rounded-xl shadow-xl p-3">
+                                            <input
+                                                type="date"
+                                                value={formData.r1_date}
+                                                onChange={(e) => { setFormData({ ...formData, r1_date: e.target.value }); setR1PickerOpen(false); }}
+                                                className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-blue-500"
+                                                autoFocus
+                                            />
+                                            {formData.r1_date && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setFormData({ ...formData, r1_date: '' }); setR1PickerOpen(false); }}
+                                                    className="mt-2 w-full text-xs text-red-400 hover:text-red-300 py-1 rounded transition-colors"
+                                                >
+                                                    Effacer la date
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="relative">
+                                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Date R2</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => { if (!readOnly) { setR2PickerOpen(!r2PickerOpen); setR1PickerOpen(false); }}}
+                                        className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between transition-colors ${
+                                            formData.r2_date ? 'text-teal-300 border-teal-500/40' : 'text-slate-400 border-slate-700'
+                                        } ${readOnly ? 'opacity-50 cursor-not-allowed' : 'hover:border-teal-500/60 cursor-pointer'}`}
+                                    >
+                                        <span>{formData.r2_date ? new Date(formData.r2_date + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' }) : 'Non défini'}</span>
+                                        <Calendar size={14} className="text-slate-500" />
+                                    </button>
+                                    {r2PickerOpen && !readOnly && (
+                                        <div className="absolute z-10 top-full mt-1 left-0 bg-slate-800 border border-slate-600 rounded-xl shadow-xl p-3">
+                                            <input
+                                                type="date"
+                                                value={formData.r2_date}
+                                                onChange={(e) => { setFormData({ ...formData, r2_date: e.target.value }); setR2PickerOpen(false); }}
+                                                className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-teal-500"
+                                                autoFocus
+                                            />
+                                            {formData.r2_date && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setFormData({ ...formData, r2_date: '' }); setR2PickerOpen(false); }}
+                                                    className="mt-2 w-full text-xs text-red-400 hover:text-red-300 py-1 rounded transition-colors"
+                                                >
+                                                    Effacer la date
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
