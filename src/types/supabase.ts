@@ -333,7 +333,7 @@ export type Database = {
       | "Demandeur d'emploi"
       | "Etudiant"
       | "Salarié"
-      payment_method_enum: "One shot" | "2x" | "3x" | "4x"
+      payment_method_enum: "One shot" | "2x" | "3x" | "4x" | "5x" | "6x"
       provenance_enum: "Tally" | "DM" | "Skool"
       social_media_enum: "Youtube" | "Instagram" | "Linkedin" | "Tiktok"
       team_member_enum: "Noé" | "Baptiste" | "Imrane"

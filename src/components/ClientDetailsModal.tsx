@@ -19,7 +19,7 @@ interface Props {
     onUpdate: () => void;
 }
 
-const PAYMENT_METHODS: PaymentMethod[] = ['One shot', '2x', '3x', '4x'];
+const PAYMENT_METHODS: PaymentMethod[] = ['One shot', '2x', '3x', '4x', '5x', '6x'];
 const TEAM_MEMBERS: TeamMember[] = ['Noé', 'Baptiste', 'Imrane'];
 
 type Tab = 'finance' | 'pipeline';
@@ -150,6 +150,8 @@ export function ClientDetailsModal({ client, isOpen, onClose, onUpdate }: Props)
             if (formData.payment_method === '2x') numPayments = 2;
             if (formData.payment_method === '3x') numPayments = 3;
             if (formData.payment_method === '4x') numPayments = 4;
+            if (formData.payment_method === '5x') numPayments = 5;
+            if (formData.payment_method === '6x') numPayments = 6;
 
             if (installments.length > 0) {
                 if (!confirm("Un échéancier existe déjà. Voulez-vous le supprimer et en générer un nouveau ?")) {

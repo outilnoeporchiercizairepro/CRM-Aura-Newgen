@@ -14,7 +14,7 @@ interface Props {
     onSuccess: () => void;
 }
 
-const PAYMENT_METHODS: PaymentMethod[] = ['One shot', '2x', '3x', '4x'];
+const PAYMENT_METHODS: PaymentMethod[] = ['One shot', '2x', '3x', '4x', '5x', '6x'];
 const TEAM_MEMBERS: TeamMember[] = ['Noé', 'Baptiste', 'Imrane'];
 
 export function ConvertToClientModal({ contact, isOpen, onClose, onSuccess }: Props) {
@@ -44,6 +44,8 @@ export function ConvertToClientModal({ contact, isOpen, onClose, onSuccess }: Pr
         if (formData.payment_method === '2x') initialPaid = (amount / 2).toFixed(2);
         if (formData.payment_method === '3x') initialPaid = (amount / 3).toFixed(2);
         if (formData.payment_method === '4x') initialPaid = (amount / 4).toFixed(2);
+        if (formData.payment_method === '5x') initialPaid = (amount / 5).toFixed(2);
+        if (formData.payment_method === '6x') initialPaid = (amount / 6).toFixed(2);
 
         setFormData({ ...formData, deal_amount: val, amount_paid: initialPaid });
     };
@@ -55,6 +57,8 @@ export function ConvertToClientModal({ contact, isOpen, onClose, onSuccess }: Pr
         if (method === '2x') initialPaid = (amount / 2).toFixed(2);
         if (method === '3x') initialPaid = (amount / 3).toFixed(2);
         if (method === '4x') initialPaid = (amount / 4).toFixed(2);
+        if (method === '5x') initialPaid = (amount / 5).toFixed(2);
+        if (method === '6x') initialPaid = (amount / 6).toFixed(2);
 
         setFormData({ ...formData, payment_method: method, amount_paid: initialPaid });
     };
@@ -90,6 +94,8 @@ export function ConvertToClientModal({ contact, isOpen, onClose, onSuccess }: Pr
             if (formData.payment_method === '2x') numPayments = 2;
             if (formData.payment_method === '3x') numPayments = 3;
             if (formData.payment_method === '4x') numPayments = 4;
+            if (formData.payment_method === '5x') numPayments = 5;
+            if (formData.payment_method === '6x') numPayments = 6;
 
             const installments = [];
 
