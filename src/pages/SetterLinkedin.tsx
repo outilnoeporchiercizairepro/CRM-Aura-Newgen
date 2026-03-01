@@ -225,18 +225,19 @@ export function SetterLinkedin() {
                                 <th className="px-4 py-3">Email</th>
                                 <th className="px-4 py-3">Téléphone</th>
                                 <th className="px-4 py-3">Source</th>
-                                <th className="px-4 py-3">Statut Pipeline</th>
+                                <th className="px-4 py-3">Statut</th>
+                                <th className="px-4 py-3">Pipeline</th>
                                 <th className="px-4 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500 italic">Chargement des contacts LinkedIn...</td>
+                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500 italic">Chargement des contacts LinkedIn...</td>
                                 </tr>
                             ) : filteredContacts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">Aucun contact LinkedIn trouvé</td>
+                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Aucun contact LinkedIn trouvé</td>
                                 </tr>
                             ) : (
                                 filteredContacts.map((contact) => (
@@ -265,12 +266,40 @@ export function SetterLinkedin() {
                                                 contact.status === 'Call planifié' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                                                 contact.status === 'Pas budget' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
                                                 contact.status === 'A recontacter' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                                contact.status === 'Attente paiement' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
+                                                contact.status === 'Attente paiement' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
                                                 contact.status === 'Attente retour' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
                                                 'bg-slate-500/10 text-slate-400 border-slate-500/20'
                                             }`}>
-                                                {contact.status}
+                                                {contact.status || '-'}
                                             </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-xs font-medium">
+                                            {contact.pipeline_status ? (
+                                                <span className={`px-2 py-1 rounded-full border whitespace-nowrap ${
+                                                    contact.pipeline_status === 'close_gagne' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                    contact.pipeline_status === 'close_perdu' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                    contact.pipeline_status === 'r2_realise' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' :
+                                                    contact.pipeline_status === 'r2_planifie' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+                                                    contact.pipeline_status === 'qualifie' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                    contact.pipeline_status === 'non_qualifie' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
+                                                    contact.pipeline_status === 'r1_realise' ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
+                                                    contact.pipeline_status === 'r1_planifie' ? 'bg-blue-500/10 text-blue-300 border-blue-500/20' :
+                                                    'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                                                }`}>
+                                                    {contact.pipeline_status === 'close_gagne' ? 'Closé Gagné' :
+                                                     contact.pipeline_status === 'close_perdu' ? 'Closé Perdu' :
+                                                     contact.pipeline_status === 'r2_realise' ? 'R2 Réalisé' :
+                                                     contact.pipeline_status === 'r2_planifie' ? 'R2 Planifié' :
+                                                     contact.pipeline_status === 'qualifie' ? 'Qualifié' :
+                                                     contact.pipeline_status === 'non_qualifie' ? 'Non Qualifié' :
+                                                     contact.pipeline_status === 'r1_realise' ? 'R1 Réalisé' :
+                                                     contact.pipeline_status === 'r1_planifie' ? 'R1 Planifié' :
+                                                     contact.pipeline_status === 'prospect' ? 'Prospect' :
+                                                     contact.pipeline_status}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-600">-</span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
