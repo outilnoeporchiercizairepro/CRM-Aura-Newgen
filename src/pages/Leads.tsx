@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, ListFilter as Filter } from 'lucide-react';
 
 type Lead = Database['public']['Tables']['leads']['Row'];
 
