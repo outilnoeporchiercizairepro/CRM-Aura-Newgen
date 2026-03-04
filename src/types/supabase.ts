@@ -286,6 +286,7 @@ export type Database = {
           email: string | null
           id: string
           nom: string
+          phone_number: string | null
           prenom: string
           provenance: Database["public"]["Enums"]["provenance_enum"] | null
           social_media: Database["public"]["Enums"]["social_media_enum"] | null
@@ -296,6 +297,7 @@ export type Database = {
           email?: string | null
           id?: string
           nom: string
+          phone_number?: string | null
           prenom: string
           provenance?: Database["public"]["Enums"]["provenance_enum"] | null
           social_media?: Database["public"]["Enums"]["social_media_enum"] | null
@@ -306,6 +308,7 @@ export type Database = {
           email?: string | null
           id?: string
           nom?: string
+          phone_number?: string | null
           prenom?: string
           provenance?: Database["public"]["Enums"]["provenance_enum"] | null
           social_media?: Database["public"]["Enums"]["social_media_enum"] | null
