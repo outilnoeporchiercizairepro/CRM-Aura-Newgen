@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Search, Filter, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, AlertCircle, Wallet, PieChart as PieChartIcon, BarChart3 as BarChartIcon } from 'lucide-react';
+import { Search, ListFilter as Filter, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, CircleAlert as AlertCircle, Wallet, ChartPie as PieChartIcon, ChartBar as BarChartIcon } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { StatusSelect } from '../components/StatusSelect';
 import { PipelineStatusSelect } from '../components/PipelineStatusSelect';

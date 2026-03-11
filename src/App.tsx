@@ -12,7 +12,7 @@ import { Expenses } from './pages/Expenses';
 import { Login } from './pages/Login';
 import { Setter } from './pages/Setter';
 import { SetterLinkedin } from './pages/SetterLinkedin';
-import { Loader2 } from 'lucide-react';
+import { Loader as Loader2 } from 'lucide-react';
 
 const Settings = () => <div>Paramètres (Construction)</div>;
 
