@@ -8,6 +8,7 @@ import { PipelineStatusSelect } from '../components/PipelineStatusSelect';
 import { NewContactModal } from '../components/NewContactModal';
 import { ContactCardModal } from '../components/ContactCardModal';
 import { ConvertToClientModal } from '../components/ConvertToClientModal';
+import { getUserRole, type UserRole } from '../lib/auth-helpers';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
     leads: Database['public']['Tables']['leads']['Row'] | null
@@ -18,6 +19,7 @@ type PipelineStatus = Database['public']['Enums']['pipeline_status_enum'];
 export function Contacts() {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userRole, setUserRole] = useState<UserRole>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
 
@@ -29,6 +31,7 @@ export function Contacts() {
 
     useEffect(() => {
         fetchContacts();
+        getUserRole().then(setUserRole);
     }, []);
 
     async function fetchContacts() {
@@ -146,13 +149,15 @@ export function Contacts() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-white">Contacts</h1>
-                <button
-                    onClick={() => setIsNewModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
-                >
-                    <Plus size={20} />
-                    Nouveau Contact
-                </button>
+                {userRole !== 'stagiaire' && (
+                    <button
+                        onClick={() => setIsNewModalOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
+                    >
+                        <Plus size={20} />
+                        Nouveau Contact
+                    </button>
+                )}
             </div>
 
             {/* Dashboard Section */}
@@ -422,13 +427,15 @@ export function Contacts() {
                                         </td>
                                         <td className="px-3 py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => setContactToConvert(contact)}
-                                                    className="text-emerald-400 hover:text-emerald-300 transition-colors p-2 hover:bg-emerald-500/10 rounded-lg group"
-                                                    title="Convertir en client"
-                                                >
-                                                    <Briefcase size={18} className="group-hover:scale-110 transition-transform" />
-                                                </button>
+                                                {userRole !== 'stagiaire' && (
+                                                    <button
+                                                        onClick={() => setContactToConvert(contact)}
+                                                        className="text-emerald-400 hover:text-emerald-300 transition-colors p-2 hover:bg-emerald-500/10 rounded-lg group"
+                                                        title="Convertir en client"
+                                                    >
+                                                        <Briefcase size={18} className="group-hover:scale-110 transition-transform" />
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => setSelectedContact(contact)}
                                                     className="text-slate-400 hover:text-blue-400 transition-colors p-2 hover:bg-blue-500/10 rounded-lg group"
@@ -436,13 +443,15 @@ export function Contacts() {
                                                 >
                                                     <Eye size={18} className="group-hover:scale-110 transition-transform" />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(contact.id)}
-                                                    className="text-slate-400 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg group"
-                                                    title="Supprimer"
-                                                >
-                                                    <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
-                                                </button>
+                                                {userRole !== 'stagiaire' && (
+                                                    <button
+                                                        onClick={() => handleDelete(contact.id)}
+                                                        className="text-slate-400 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg group"
+                                                        title="Supprimer"
+                                                    >
+                                                        <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

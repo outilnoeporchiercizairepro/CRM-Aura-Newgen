@@ -60,6 +60,12 @@ export function MainLayout({ children, role: roleProp }: Props) {
                 navigate('/setter-linkedin');
             }
         }
+        if (userRole === 'stagiaire') {
+            const allowedPaths = ['/', '/contacts'];
+            if (!allowedPaths.includes(location.pathname)) {
+                navigate('/contacts');
+            }
+        }
     }, [userRole, location.pathname, navigate]);
 
     const handleLogout = async () => {
@@ -67,9 +73,9 @@ export function MainLayout({ children, role: roleProp }: Props) {
     };
 
     const navItems = [
-        { to: '/', icon: <LayoutDashboard size={20} />, label: 'Tableau de bord', allowedRoles: ['admin'] },
+        { to: '/', icon: <LayoutDashboard size={20} />, label: 'Tableau de bord', allowedRoles: ['admin', 'stagiaire'] },
         { to: '/leads', icon: <UserPlus size={20} />, label: 'Leads', allowedRoles: ['admin'] },
-        { to: '/contacts', icon: <Users size={20} />, label: 'Contacts', allowedRoles: ['admin'] },
+        { to: '/contacts', icon: <Users size={20} />, label: 'Contacts', allowedRoles: ['admin', 'stagiaire'] },
         { to: '/clients', icon: <Briefcase size={20} />, label: 'Clients', allowedRoles: ['admin'] },
         { to: '/billing', icon: <Wallet size={20} />, label: 'Facturation', allowedRoles: ['admin'] },
         { to: '/expenses', icon: <TrendingDown size={20} />, label: 'Dépenses', allowedRoles: ['admin'] },
@@ -118,7 +124,7 @@ export function MainLayout({ children, role: roleProp }: Props) {
                 </nav>
 
                 <div className={`p-2 border-t border-slate-800 space-y-1`}>
-                    {userRole !== 'setter_linkedin' && (
+                    {userRole !== 'setter_linkedin' && userRole !== 'stagiaire' && (
                         <NavItem to="/settings" icon={<Settings size={20} />} label="Paramètres" collapsed={collapsed} />
                     )}
                     <button
@@ -142,7 +148,7 @@ export function MainLayout({ children, role: roleProp }: Props) {
                         <div className="flex flex-col items-end">
                             <span className="text-xs font-bold text-white uppercase tracking-tight">{user?.email?.split('@')[0]}</span>
                             <span className="text-[10px] text-slate-500 font-medium">
-                                {userRole === 'admin' ? 'ADMIN' : userRole === 'setter' ? 'SETTER' : userRole === 'setter_linkedin' ? 'SETTER LINKEDIN' : 'MEMBRE'}
+                                {userRole === 'admin' ? 'ADMIN' : userRole === 'setter' ? 'SETTER' : userRole === 'setter_linkedin' ? 'SETTER LINKEDIN' : userRole === 'stagiaire' ? 'STAGIAIRE' : 'MEMBRE'}
                             </span>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">

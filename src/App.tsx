@@ -45,6 +45,9 @@ function ProtectedRoute({
     if (role === 'setter_linkedin') {
       return <Navigate to="/setter-linkedin" replace />;
     }
+    if (role === 'stagiaire') {
+      return <Navigate to="/contacts" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 
@@ -87,14 +90,14 @@ function App() {
   }, []);
 
   const adminOrSetter: UserRole[] = ['admin', 'setter'];
-  const allRoles: UserRole[] = ['admin', 'setter', 'setter_linkedin'];
+  const allRoles: UserRole[] = ['admin', 'setter', 'setter_linkedin', 'stagiaire'];
 
   return (
     <BrowserRouter>
       <Routes>
         <Route
           path="/login"
-          element={session ? <Navigate to={role === 'setter_linkedin' ? '/setter-linkedin' : '/'} replace /> : <Login />}
+          element={session ? <Navigate to={role === 'setter_linkedin' ? '/setter-linkedin' : role === 'stagiaire' ? '/contacts' : '/'} replace /> : <Login />}
         />
         <Route
           path="/*"
@@ -103,7 +106,7 @@ function App() {
               <MainLayout role={role}>
                 <Routes>
                   <Route path="/" element={
-                    <ProtectedRoute session={session} loading={loading} role={role} allowedRoles={adminOrSetter}>
+                    <ProtectedRoute session={session} loading={loading} role={role} allowedRoles={[...adminOrSetter, 'stagiaire']}>
                       <Dashboard />
                     </ProtectedRoute>
                   } />
@@ -113,7 +116,7 @@ function App() {
                     </ProtectedRoute>
                   } />
                   <Route path="/contacts" element={
-                    <ProtectedRoute session={session} loading={loading} role={role} allowedRoles={adminOrSetter}>
+                    <ProtectedRoute session={session} loading={loading} role={role} allowedRoles={[...adminOrSetter, 'stagiaire']}>
                       <Contacts />
                     </ProtectedRoute>
                   } />
@@ -148,7 +151,7 @@ function App() {
                     </ProtectedRoute>
                   } />
                   <Route path="*" element={
-                    <Navigate to={role === 'setter_linkedin' ? '/setter-linkedin' : '/'} replace />
+                    <Navigate to={role === 'setter_linkedin' ? '/setter-linkedin' : role === 'stagiaire' ? '/contacts' : '/'} replace />
                   } />
                 </Routes>
               </MainLayout>
