@@ -9,7 +9,7 @@ import { NewContactModal } from '../components/NewContactModal';
 import { ContactCardModal } from '../components/ContactCardModal';
 import { ConvertToClientModal } from '../components/ConvertToClientModal';
 import { getUserRole, type UserRole } from '../lib/auth-helpers';
-import { ContactTagBadges } from '../components/TagSelector';
+import { InlineTagEditor } from '../components/TagSelector';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
     leads: Database['public']['Tables']['leads']['Row'] | null
@@ -113,6 +113,10 @@ export function Contacts() {
         ));
     };
 
+    const handleTagsChanged = (contactId: string, newTagIds: string[]) => {
+        setContactTagMap(prev => ({ ...prev, [contactId]: newTagIds }));
+    };
+
     // Dashboard Calculations
     const stats = useMemo(() => {
         const total = contacts.length;
@@ -129,6 +133,9 @@ export function Contacts() {
         ).length;
         const nBRate = appointments > 0 ? (noBudgetCount / appointments) * 100 : 0;
 
+        const closingBase = total - noShowCount - noBudgetCount;
+        const closingRate = closingBase > 0 ? (closed / closingBase) * 100 : 0;
+
         return {
             total,
             closed,
@@ -137,7 +144,8 @@ export function Contacts() {
             noBudget: noBudgetCount,
             convRate,
             nSRate,
-            nBRate
+            nBRate,
+            closingRate
         };
     }, [contacts]);
 
@@ -185,7 +193,7 @@ export function Contacts() {
             </div>
 
             {/* Dashboard Section */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
                         <Users size={32} className="text-blue-400" />
@@ -238,6 +246,15 @@ export function Contacts() {
                     <p className="text-emerald-400 text-[10px] font-bold mb-1 uppercase tracking-wider">Taux Conversion</p>
                     <h3 className="text-2xl font-black text-emerald-400 leading-none">{stats.convRate.toFixed(1)}%</h3>
                     <div className="mt-2 text-[9px] text-emerald-400/80 font-bold uppercase tracking-tighter italic">KPI Performance</div>
+                </div>
+
+                <div className="bg-blue-500/10 border-2 border-blue-500/20 p-4 rounded-xl relative overflow-hidden group ring-1 ring-blue-500/30 col-span-2 md:col-span-1">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <TrendingUp size={32} className="text-blue-400" />
+                    </div>
+                    <p className="text-blue-300 text-[10px] font-bold mb-1 uppercase tracking-wider">Taux de Closing</p>
+                    <h3 className="text-2xl font-black text-blue-300 leading-none">{stats.closingRate.toFixed(1)}%</h3>
+                    <div className="mt-2 text-[9px] text-blue-400/70 font-medium">Closés / (Total - NS - NB)</div>
                 </div>
             </div>
 
@@ -447,7 +464,12 @@ export function Contacts() {
                                             />
                                         </td>
                                         <td className="px-3 py-3">
-                                            <ContactTagBadges contactId={contact.id} />
+                                            <InlineTagEditor
+                                                contactId={contact.id}
+                                                allTags={allTags}
+                                                selectedTagIds={contactTagMap[contact.id] || []}
+                                                onChanged={handleTagsChanged}
+                                            />
                                         </td>
                                         <td className="px-3 py-3">
                                             <span

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Tag, X, ChevronDown, Plus } from 'lucide-react';
+import { X, ChevronDown, Plus } from 'lucide-react';
 
-type Tag = {
+type TagItem = {
     id: string;
     name: string;
     color: string;
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function TagSelector({ contactId, readOnly = false }: Props) {
-    const [allTags, setAllTags] = useState<Tag[]>([]);
+    const [allTags, setAllTags] = useState<TagItem[]>([]);
     const [contactTagIds, setContactTagIds] = useState<Set<string>>(new Set());
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -72,7 +72,6 @@ export function TagSelector({ contactId, readOnly = false }: Props) {
         <div className="space-y-2">
             <label className="block text-xs font-medium text-slate-500 uppercase">Tags</label>
 
-            {/* Selected tags */}
             <div className="flex flex-wrap gap-1.5 min-h-[28px]">
                 {selectedTags.map(tag => (
                     <span
@@ -97,7 +96,6 @@ export function TagSelector({ contactId, readOnly = false }: Props) {
                 )}
             </div>
 
-            {/* Dropdown to add tags */}
             {!readOnly && allTags.length > 0 && (
                 <div className="relative" ref={dropdownRef}>
                     <button
@@ -146,8 +144,118 @@ export function TagSelector({ contactId, readOnly = false }: Props) {
     );
 }
 
+interface InlineTagEditorProps {
+    contactId: string;
+    allTags: TagItem[];
+    selectedTagIds: string[];
+    onChanged: (contactId: string, newTagIds: string[]) => void;
+}
+
+export function InlineTagEditor({ contactId, allTags, selectedTagIds, onChanged }: InlineTagEditorProps) {
+    const [open, setOpen] = useState(false);
+    const [localTagIds, setLocalTagIds] = useState<Set<string>>(new Set(selectedTagIds));
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        setLocalTagIds(new Set(selectedTagIds));
+    }, [selectedTagIds.join(',')]);
+
+    useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    async function toggleTag(tagId: string) {
+        const isSelected = localTagIds.has(tagId);
+        if (isSelected) {
+            await supabase.from('contact_tags').delete()
+                .eq('contact_id', contactId)
+                .eq('tag_id', tagId);
+            const next = new Set(localTagIds);
+            next.delete(tagId);
+            setLocalTagIds(next);
+            onChanged(contactId, Array.from(next));
+        } else {
+            await supabase.from('contact_tags').insert([{ contact_id: contactId, tag_id: tagId }]);
+            const next = new Set([...localTagIds, tagId]);
+            setLocalTagIds(next);
+            onChanged(contactId, Array.from(next));
+        }
+    }
+
+    const selectedTags = allTags.filter(t => localTagIds.has(t.id));
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="flex flex-wrap gap-1 min-w-[60px] min-h-[24px] items-center cursor-pointer group"
+                title="Cliquer pour modifier les tags"
+            >
+                {selectedTags.length === 0 ? (
+                    <span className="text-[10px] text-slate-600 italic group-hover:text-slate-400 transition-colors">+ tag</span>
+                ) : (
+                    selectedTags.map(tag => (
+                        <span
+                            key={tag.id}
+                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: tag.color + '20', color: tag.color, border: `1px solid ${tag.color}30` }}
+                        >
+                            {tag.name}
+                        </span>
+                    ))
+                )}
+            </button>
+
+            {open && (
+                <div className="absolute z-50 top-full mt-1 left-0 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-52 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-slate-800 text-[10px] text-slate-500 uppercase font-semibold tracking-wider">
+                        Tags du contact
+                    </div>
+                    {allTags.length === 0 ? (
+                        <div className="px-3 py-3 text-xs text-slate-500 text-center">Aucun tag disponible</div>
+                    ) : (
+                        allTags.map(tag => {
+                            const isOn = localTagIds.has(tag.id);
+                            return (
+                                <button
+                                    key={tag.id}
+                                    type="button"
+                                    onClick={() => toggleTag(tag.id)}
+                                    className="flex items-center gap-2 w-full px-3 py-2 hover:bg-slate-800 transition-colors text-left"
+                                >
+                                    <span
+                                        className="w-3 h-3 rounded-full flex-shrink-0 border-2 transition-all"
+                                        style={{
+                                            backgroundColor: isOn ? tag.color : 'transparent',
+                                            borderColor: tag.color
+                                        }}
+                                    />
+                                    <span
+                                        className="text-xs font-medium px-2 py-0.5 rounded-full flex-1"
+                                        style={{ backgroundColor: tag.color + '20', color: tag.color }}
+                                    >
+                                        {tag.name}
+                                    </span>
+                                    {isOn && <X size={10} style={{ color: tag.color }} />}
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function ContactTagBadges({ contactId }: { contactId: string }) {
-    const [tags, setTags] = useState<Tag[]>([]);
+    const [tags, setTags] = useState<TagItem[]>([]);
 
     useEffect(() => {
         supabase
