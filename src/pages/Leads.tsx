@@ -94,7 +94,11 @@ export function Leads() {
                                             {lead.prenom} {lead.nom}
                                         </td>
                                         <td className="px-4 py-3 text-xs truncate max-w-[160px]">{lead.email || '-'}</td>
-                                        <td className="px-4 py-3 text-xs whitespace-nowrap">{lead.phone_number || '-'}</td>
+                                        <td className="px-4 py-3 text-xs whitespace-nowrap">
+                                            {lead.phone_number ? (
+                                                <a href={`tel:${lead.phone_number}`} className="text-blue-400 hover:text-blue-300 transition-colors">{lead.phone_number}</a>
+                                            ) : '-'}
+                                        </td>
                                         <td className="px-4 py-3">
                                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">
                                                 {lead.provenance || '-'}

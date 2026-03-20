@@ -384,7 +384,7 @@ export function Contacts() {
                                         </td>
                                         <td className="px-3 py-3">
                                             {contact.phone ? (
-                                                <span className="text-slate-300 text-xs whitespace-nowrap">{contact.phone}</span>
+                                                <a href={`tel:${contact.phone}`} className="text-blue-400 hover:text-blue-300 text-xs whitespace-nowrap transition-colors">{contact.phone}</a>
                                             ) : (
                                                 <span className="text-slate-600 italic">-</span>
                                             )}

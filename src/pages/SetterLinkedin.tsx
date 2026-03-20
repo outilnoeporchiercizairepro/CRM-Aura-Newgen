@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Search, Filter, Eye, Linkedin, TrendingUp } from 'lucide-react';
+import { Search, ListFilter as Filter, Eye, Linkedin, TrendingUp } from 'lucide-react';
 import { ContactCardModal } from '../components/ContactCardModal';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
@@ -250,8 +250,10 @@ export function SetterLinkedin() {
                                                 {contact.email || '-'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-slate-300 text-xs whitespace-nowrap">
-                                            {contact.phone || '-'}
+                                        <td className="px-4 py-3 text-xs whitespace-nowrap">
+                                            {contact.phone ? (
+                                                <a href={`tel:${contact.phone}`} className="text-blue-400 hover:text-blue-300 transition-colors">{contact.phone}</a>
+                                            ) : <span className="text-slate-500">-</span>}
                                         </td>
                                         <td className="px-4 py-3">
                                             {contact.source ? (
