@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      tags: {
+        Row: {
+          id: string
+          name: string
+          color: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          color?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          color?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      contact_tags: {
+        Row: {
+          contact_id: string
+          tag_id: string
+          created_at: string
+        }
+        Insert: {
+          contact_id: string
+          tag_id: string
+          created_at?: string
+        }
+        Update: {
+          contact_id?: string
+          tag_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       client_installments: {
         Row: {
           amount: number

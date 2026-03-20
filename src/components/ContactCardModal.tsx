@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { X, Save, Trash2, Loader2, Link as LinkIcon, Info, FileText, StickyNote, Trophy, GitBranch, Calendar } from 'lucide-react';
+import { X, Save, Trash2, Loader as Loader2, Link as LinkIcon, Info, FileText, StickyNote, Trophy, GitBranch, Calendar } from 'lucide-react';
 import { PipelineTab } from './PipelineTab';
+import { TagSelector } from './TagSelector';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
     leads: Database['public']['Tables']['leads']['Row'] | null
@@ -287,6 +288,9 @@ export function ContactCardModal({ contact, isOpen, onClose, onUpdate, readOnly 
                                     />
                                 </div>
                             </div>
+
+                            {/* Tags */}
+                            <TagSelector contactId={contact.id} readOnly={readOnly} />
 
                             {/* R1 / R2 Dates */}
                             <div className="grid grid-cols-2 gap-4">

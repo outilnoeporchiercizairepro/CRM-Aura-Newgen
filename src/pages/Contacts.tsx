@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
-import { Search, ListFilter as Filter, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, CircleAlert as AlertCircle, Wallet, ChartPie as PieChartIcon, ChartBar as BarChartIcon } from 'lucide-react';
+import { Search, ListFilter as Filter, Eye, Plus, Calendar, Trash2, Briefcase, Users, TrendingUp, CircleAlert as AlertCircle, Wallet, ChartPie as PieChartIcon, ChartBar as BarChartIcon, Tag } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { StatusSelect } from '../components/StatusSelect';
 import { PipelineStatusSelect } from '../components/PipelineStatusSelect';
@@ -9,6 +9,7 @@ import { NewContactModal } from '../components/NewContactModal';
 import { ContactCardModal } from '../components/ContactCardModal';
 import { ConvertToClientModal } from '../components/ConvertToClientModal';
 import { getUserRole, type UserRole } from '../lib/auth-helpers';
+import { ContactTagBadges } from '../components/TagSelector';
 
 type Contact = Database['public']['Tables']['contacts']['Row'] & {
     leads: Database['public']['Tables']['leads']['Row'] | null
@@ -28,11 +29,32 @@ export function Contacts() {
     const [contactToConvert, setContactToConvert] = useState<Contact | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [todayOnly, setTodayOnly] = useState(false);
+    const [tagFilter, setTagFilter] = useState<string>('all');
+    const [allTags, setAllTags] = useState<{ id: string; name: string; color: string }[]>([]);
+    const [contactTagMap, setContactTagMap] = useState<Record<string, string[]>>({});
 
     useEffect(() => {
         fetchContacts();
         getUserRole().then(setUserRole);
+        fetchTags();
     }, []);
+
+    async function fetchTags() {
+        const { data } = await supabase.from('tags').select('id, name, color').order('name');
+        if (data) setAllTags(data);
+    }
+
+    async function fetchContactTagMap() {
+        const { data } = await supabase.from('contact_tags').select('contact_id, tag_id');
+        if (data) {
+            const map: Record<string, string[]> = {};
+            data.forEach(ct => {
+                if (!map[ct.contact_id]) map[ct.contact_id] = [];
+                map[ct.contact_id].push(ct.tag_id);
+            });
+            setContactTagMap(map);
+        }
+    }
 
     async function fetchContacts() {
         try {
@@ -44,6 +66,7 @@ export function Contacts() {
 
             if (error) throw error;
             setContacts(data as Contact[] || []);
+            fetchContactTagMap();
         } catch (error) {
             console.error('Error fetching contacts:', error);
         } finally {
@@ -73,9 +96,10 @@ export function Contacts() {
                 contact.email?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
             const matchesToday = !todayOnly || contact.r1_date === todayStr || contact.r2_date === todayStr;
-            return matchesSearch && matchesStatus && matchesToday;
+            const matchesTag = tagFilter === 'all' || (contactTagMap[contact.id] || []).includes(tagFilter);
+            return matchesSearch && matchesStatus && matchesToday && matchesTag;
         });
-    }, [contacts, searchTerm, statusFilter, todayOnly, todayStr]);
+    }, [contacts, searchTerm, statusFilter, todayOnly, todayStr, tagFilter, contactTagMap]);
 
     const handleStatusUpdate = (contactId: string, newStatus: string) => {
         setContacts(prev => prev.map(c =>
@@ -340,6 +364,24 @@ export function Contacts() {
                         </span>
                     )}
                 </button>
+
+                {allTags.length > 0 && (
+                    <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-1">
+                        <div className="flex items-center px-3 text-slate-400">
+                            <Tag size={16} />
+                        </div>
+                        <select
+                            value={tagFilter}
+                            onChange={(e) => setTagFilter(e.target.value)}
+                            className="bg-transparent text-white px-2 py-1 text-sm focus:outline-none cursor-pointer"
+                        >
+                            <option value="all" className="bg-slate-800">Tous les tags</option>
+                            {allTags.map(tag => (
+                                <option key={tag.id} value={tag.id} className="bg-slate-800">{tag.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
@@ -352,6 +394,7 @@ export function Contacts() {
                                 <th className="px-3 py-3">Téléphone</th>
                                 <th className="px-3 py-3">Statut Contact</th>
                                 <th className="px-3 py-3">Pipeline</th>
+                                <th className="px-3 py-3">Tags</th>
                                 <th className="px-3 py-3">Source</th>
                                 <th className="px-3 py-3">R1</th>
                                 <th className="px-3 py-3">R2</th>
@@ -361,11 +404,11 @@ export function Contacts() {
                         <tbody className="divide-y divide-slate-700">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-8 text-center text-slate-500">Chargement...</td>
+                                    <td colSpan={10} className="px-6 py-8 text-center text-slate-500">Chargement...</td>
                                 </tr>
                             ) : filteredContacts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-8 text-center text-slate-500">Aucun contact trouvé</td>
+                                    <td colSpan={10} className="px-6 py-8 text-center text-slate-500">Aucun contact trouvé</td>
                                 </tr>
                             ) : (
                                 filteredContacts.map((contact) => (
@@ -402,6 +445,9 @@ export function Contacts() {
                                                 contactId={contact.id}
                                                 onStatusChange={(newStatus) => handlePipelineUpdate(contact.id, newStatus)}
                                             />
+                                        </td>
+                                        <td className="px-3 py-3">
+                                            <ContactTagBadges contactId={contact.id} />
                                         </td>
                                         <td className="px-3 py-3">
                                             <span
