@@ -12,6 +12,7 @@ import { Expenses } from './pages/Expenses';
 import { Login } from './pages/Login';
 import { Setter } from './pages/Setter';
 import { SetterLinkedin } from './pages/SetterLinkedin';
+import { SetterTiktok } from './pages/SetterTiktok';
 import { Loader as Loader2 } from 'lucide-react';
 import { Settings } from './pages/Settings';
 
@@ -43,6 +44,9 @@ function ProtectedRoute({
   if (allowedRoles && role !== null && !allowedRoles.includes(role)) {
     if (role === 'setter_linkedin') {
       return <Navigate to="/setter-linkedin" replace />;
+    }
+    if (role === 'setter_tiktok') {
+      return <Navigate to="/setter-tiktok" replace />;
     }
     if (role === 'stagiaire') {
       return <Navigate to="/contacts" replace />;
@@ -89,14 +93,14 @@ function App() {
   }, []);
 
   const adminOrSetter: UserRole[] = ['admin', 'setter'];
-  const allRoles: UserRole[] = ['admin', 'setter', 'setter_linkedin', 'stagiaire'];
+  const allRoles: UserRole[] = ['admin', 'setter', 'setter_linkedin', 'setter_tiktok', 'stagiaire'];
 
   return (
     <BrowserRouter>
       <Routes>
         <Route
           path="/login"
-          element={session ? <Navigate to={role === 'setter_linkedin' ? '/setter-linkedin' : role === 'stagiaire' ? '/contacts' : '/'} replace /> : <Login />}
+          element={session ? <Navigate to={role === 'setter_linkedin' ? '/setter-linkedin' : role === 'setter_tiktok' ? '/setter-tiktok' : role === 'stagiaire' ? '/contacts' : '/'} replace /> : <Login />}
         />
         <Route
           path="/*"
@@ -144,13 +148,18 @@ function App() {
                       <SetterLinkedin />
                     </ProtectedRoute>
                   } />
+                  <Route path="/setter-tiktok" element={
+                    <ProtectedRoute session={session} loading={loading} role={role} allowedRoles={['admin', 'setter_tiktok']}>
+                      <SetterTiktok />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/settings" element={
                     <ProtectedRoute session={session} loading={loading} role={role} allowedRoles={['admin']}>
                       <Settings />
                     </ProtectedRoute>
                   } />
                   <Route path="*" element={
-                    <Navigate to={role === 'setter_linkedin' ? '/setter-linkedin' : role === 'stagiaire' ? '/contacts' : '/'} replace />
+                    <Navigate to={role === 'setter_linkedin' ? '/setter-linkedin' : role === 'setter_tiktok' ? '/setter-tiktok' : role === 'stagiaire' ? '/contacts' : '/'} replace />
                   } />
                 </Routes>
               </MainLayout>

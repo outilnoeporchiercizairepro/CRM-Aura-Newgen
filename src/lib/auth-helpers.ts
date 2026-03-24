@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-export type UserRole = 'admin' | 'setter' | 'setter_linkedin' | 'stagiaire' | null;
+export type UserRole = 'admin' | 'setter' | 'setter_linkedin' | 'setter_tiktok' | 'stagiaire' | null;
 
 export async function getUserRole(): Promise<UserRole> {
     try {

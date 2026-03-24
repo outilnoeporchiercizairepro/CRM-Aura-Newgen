@@ -11,6 +11,7 @@ import {
     TrendingDown,
     Target,
     Linkedin,
+    Music,
     ChevronLeft,
     ChevronRight
 } from 'lucide-react';
@@ -60,6 +61,11 @@ export function MainLayout({ children, role: roleProp }: Props) {
                 navigate('/setter-linkedin');
             }
         }
+        if (userRole === 'setter_tiktok') {
+            if (location.pathname !== '/setter-tiktok') {
+                navigate('/setter-tiktok');
+            }
+        }
         if (userRole === 'stagiaire') {
             const allowedPaths = ['/', '/contacts'];
             if (!allowedPaths.includes(location.pathname)) {
@@ -81,6 +87,7 @@ export function MainLayout({ children, role: roleProp }: Props) {
         { to: '/expenses', icon: <TrendingDown size={20} />, label: 'Dépenses', allowedRoles: ['admin'] },
         { to: '/setter', icon: <Target size={20} />, label: 'Setter (s-i)', allowedRoles: ['admin', 'setter'] },
         { to: '/setter-linkedin', icon: <Linkedin size={20} />, label: 'Setter LinkedIn', allowedRoles: ['admin', 'setter_linkedin'] },
+        { to: '/setter-tiktok', icon: <Music size={20} />, label: 'Setter TikTok (s-t)', allowedRoles: ['admin', 'setter_tiktok'] },
     ];
 
     const visibleNavItems = navItems.filter(item =>
@@ -124,7 +131,7 @@ export function MainLayout({ children, role: roleProp }: Props) {
                 </nav>
 
                 <div className={`p-2 border-t border-slate-800 space-y-1`}>
-                    {userRole !== 'setter_linkedin' && userRole !== 'stagiaire' && (
+                    {userRole !== 'setter_linkedin' && userRole !== 'setter_tiktok' && userRole !== 'stagiaire' && (
                         <NavItem to="/settings" icon={<Settings size={20} />} label="Paramètres" collapsed={collapsed} />
                     )}
                     <button
@@ -148,7 +155,7 @@ export function MainLayout({ children, role: roleProp }: Props) {
                         <div className="flex flex-col items-end">
                             <span className="text-xs font-bold text-white uppercase tracking-tight">{user?.email?.split('@')[0]}</span>
                             <span className="text-[10px] text-slate-500 font-medium">
-                                {userRole === 'admin' ? 'ADMIN' : userRole === 'setter' ? 'SETTER' : userRole === 'setter_linkedin' ? 'SETTER LINKEDIN' : userRole === 'stagiaire' ? 'STAGIAIRE' : 'MEMBRE'}
+                                {userRole === 'admin' ? 'ADMIN' : userRole === 'setter' ? 'SETTER' : userRole === 'setter_linkedin' ? 'SETTER LINKEDIN' : userRole === 'setter_tiktok' ? 'SETTER TIKTOK' : userRole === 'stagiaire' ? 'STAGIAIRE' : 'MEMBRE'}
                             </span>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">
